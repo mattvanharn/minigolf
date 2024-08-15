@@ -44,7 +44,6 @@
     import { GUI } from "three/addons/libs/lil-gui.module.min.js";
 
     import { GolfBall } from "./golfBall.js";
-    import { CourseElement } from "./courseElements.js";
 
     import {
       SUBTRACTION,
@@ -151,6 +150,10 @@
     const vector2 = new THREE.Vector3();
     const vector3 = new THREE.Vector3();
 
+    let shotsTaken = 0;
+    const holeParScores = [2, 3, 4];
+    let currentHoleIndex = 0;
+
     document.addEventListener("keydown", (event) => {
       keyStates[event.code] = true;
     });
@@ -208,7 +211,7 @@
         console.log("golfBall.velocity", golfBall.velocity);
         // Shoot ball only if it is not moving
         if (golfBall.velocity.x <= 0.001 && golfBall.velocity.z <= 0.001) {
-          golfBall.shoot(camera, mouseTime, shotDirection);
+          shootBall();
         }
       }
     }
@@ -226,9 +229,9 @@
       // Move the model to hole 2
       gltf.scene.position.set(-10, 0, 50);
 
-      //      scene.add(gltf.scene);
+      scene.add(gltf.scene);
 
-      //     worldOctree.fromGraphNode(gltf.scene);
+      worldOctree.fromGraphNode(gltf.scene);
 
       gltf.scene.traverse((child) => {
         if (child.isMesh) {
@@ -694,13 +697,107 @@
     scene.add(holeBumperH2);
     worldOctree.fromGraphNode(holeBumperH2);
 
-    // Create course elements with ./courseElements.js instead of the code above
-    async function initializeScene() {
-      const { }
-    }
+    // Create the golf ball
+   // function createGolfBall() {
+   //   const golfBallGeometry = new THREE.SphereGeometry(
+   //     SPHERE_RADIUS,
+   //     32,
+   //     32,
+   //   );
+   //   const textureLoader = new THREE.TextureLoader();
+
+   //   // Load the golf ball texture
+   //   const golfBallTexture = textureLoader.load("./textures/golfball.jpg");
+
+   //   // Load the clearcoat normal map
+   //   const golfBallNormalMap = textureLoader.load(
+   //     "./textures/Scratched_gold_01_1K_Normal.png",
+   //   );
+
+   //   // Create the golf ball material
+   //   const golfBallMaterial = new THREE.MeshStandardMaterial({
+   //     color: "white",
+   //     map: golfBallTexture,
+   //     normalMap: golfBallNormalMap,
+   //     roughness: 0.5,
+   //     metalness: 0.5,
+   //   });
+
+   //   // Create the golf ball mesh
+   //   const golfBall = new THREE.Mesh(golfBallGeometry, golfBallMaterial);
+   //   golfBall.position.set(-10, 0, 10);
+
+   //   // Add the golf ball to the scene
+   //   scene.add(golfBall);
+
+   //   // Add the golf ball to the octree
+   //   worldOctree.fromGraphNode(golfBall);
+
+   //   return {
+   //     mesh: golfBall,
+   //     collider: new THREE.Sphere(golfBall.position, SPHERE_RADIUS),
+   //     velocity: new THREE.Vector3(),
+   //   };
+   // }
 
     const golfBall = new GolfBall(new THREE.Vector3(0, 4, 10), SPHERE_RADIUS);
-    golfBall.addToScene(scene, worldOctree);
+
+   // function shootBall() {
+   //   camera.getWorldDirection(shotDirection);
+
+   //   // golfBall.collider.center
+   //   //   .copy(playerCollider.end)
+   //   //   .addScaledVector(playerDirection, playerCollider.radius * 1.5);
+
+   //   // throw the ball with more force if we hold the button longer, and if we move forward
+
+   //   const impulse =
+   //     15 + 30 * (1 - Math.exp((mouseTime - performance.now()) * 0.001));
+
+   //   golfBall.velocity.copy(shotDirection).multiplyScalar(impulse);
+
+   //   console.log("golfBall.velocity", golfBall.velocity);
+   //   console.log("shotDirection", shotDirection);
+   // }
+
+   // // Update the golf ball
+   // function updateGolfBall(deltaTime) {
+   //   golfBall.collider.center.addScaledVector(golfBall.velocity, deltaTime);
+
+   //   const result = worldOctree.sphereIntersect(golfBall.collider);
+
+   //   if (result) {
+   //     golfBall.velocity.addScaledVector(
+   //       result.normal,
+   //       -result.normal.dot(golfBall.velocity) * 1.5,
+   //     );
+   //     golfBall.collider.center.add(
+   //       result.normal.multiplyScalar(result.depth),
+   //     );
+   //   } else {
+   //     golfBall.velocity.y -= GRAVITY * deltaTime;
+   //   }
+
+   //   const damping = Math.exp(-1.5 * deltaTime) - 1;
+   //   golfBall.velocity.addScaledVector(golfBall.velocity, damping);
+
+   //   golfBall.mesh.position.copy(golfBall.collider.center);
+   // }
+
+    // Check if the golf ball is in the hole
+    function checkHole() {
+      if (
+        golfBall.collider.center.distanceTo(hole1Brush.position) < HOLE_RADIUS
+      ) {
+        console.log("Hole in one!");
+        shotsTaken = 0;
+        currentHoleIndex++;
+
+        if (currentHoleIndex >= holeParScores.length) {
+          console.log("Game over!");
+        }
+      }
+    }
 
     function animate() {
       const deltaTime = Math.min(0.05, clock.getDelta()) / STEPS_PER_FRAME;
@@ -711,8 +808,10 @@
       for (let i = 0; i < STEPS_PER_FRAME; i++) {
         keybinds(deltaTime);
 
-        golfBall.update(deltaTime, worldOctree, GRAVITY);
+        updateGolfBall(deltaTime);
       }
+
+      checkHole();
 
       renderer.render(scene, camera);
 
