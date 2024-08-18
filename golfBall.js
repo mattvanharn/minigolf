@@ -1,5 +1,5 @@
 // golfBall.js
-import * as THREE from 'three';
+import * as THREE from "three";
 
 export class GolfBall {
   constructor(position, radius) {
@@ -9,30 +9,22 @@ export class GolfBall {
 
     this.geometry = new THREE.SphereGeometry(this.radius, 32, 32);
     this.textureLoader = new THREE.TextureLoader();
-    this.texture = this.textureLoader.load('./textures/golfball.jpg');
-    this.normalMap = this.textureLoader.load("./textures/Scratched_gold_01_1K_Normal.png");
+    this.texture = this.textureLoader.load("./textures/golfball.jpg");
+    this.normalMap = this.textureLoader.load(
+      "./textures/Scratched_gold_01_1K_Normal.png",
+    );
     this.material = new THREE.MeshStandardMaterial({
       color: "white",
       map: this.texture,
       normalMap: this.normalMap,
       roughness: 0.5,
-      metalness: 0.5
+      metalness: 0.5,
     });
 
     this.mesh = new THREE.Mesh(this.geometry, this.material);
     this.mesh.position.copy(this.position);
 
     this.collider = new THREE.Sphere(this.mesh.position, this.radius);
-
-    this.mesh.castShadow = true;
-    this.mesh.receiveShadow = true;
-  }
-
-  addToScene(scene, worldOctree) {
-    this.recieveShadow = true;
-    this.castShadow = true;
-    scene.add(this.mesh);
-    worldOctree.fromGraphNode(this.mesh);
   }
 
   update(deltaTime, worldOctree, GRAVITY) {
@@ -45,9 +37,7 @@ export class GolfBall {
         result.normal,
         -result.normal.dot(this.velocity) * 1.5,
       );
-      this.collider.center.add(
-        result.normal.multiplyScalar(result.depth),
-      );
+      this.collider.center.add(result.normal.multiplyScalar(result.depth));
     } else {
       this.velocity.y -= GRAVITY * deltaTime;
     }
@@ -56,13 +46,13 @@ export class GolfBall {
     this.velocity.addScaledVector(this.velocity, damping);
 
     this.mesh.position.copy(this.collider.center);
-
   }
 
   shoot(camera, mouseTime, shotDirection) {
     camera.getWorldDirection(shotDirection);
 
-    const impulse = .1 + 30 * (1 - Math.exp((mouseTime - performance.now()) * 0.001));
+    const impulse =
+      0.1 + 30 * (1 - Math.exp((mouseTime - performance.now()) * 0.001));
     this.velocity.multiplyScalar(impulse);
 
     console.log("golfBall.velocity", this.velocity);

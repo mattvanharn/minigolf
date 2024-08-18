@@ -1,20 +1,23 @@
 <!doctype html>
 <html lang="en">
+  <head>
+    <title>three.js - misc - octree collisions</title>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0"
+    />
+    <link type="text/css" rel="stylesheet" href="main.css" />
+  </head>
 
-<head>
-  <title>three.js - misc - octree collisions</title>
-  <meta charset="utf-8" />
-  <meta name="viewport"
-    content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
-  <link type="text/css" rel="stylesheet" href="main.css" />
-</head>
-
-<body>
-  <div id="info"> Octree threejs demo - basic collisions with static triangle
-    mesh<br /> MOUSE to look around and to throw balls<br /> WASD to move and
-    SPACE to jump </div>
-  <div id="container"></div>
-  <script type="importmap">
+  <body>
+    <div id="info">
+      Octree threejs demo - basic collisions with static triangle mesh<br />
+      MOUSE to look around and to throw balls<br />
+      WASD to move and SPACE to jump
+    </div>
+    <div id="container"></div>
+    <script type="importmap">
       {
         "imports": {
           "three": "https://cdn.jsdelivr.net/npm/three@v0.165.0/build/three.module.js",
@@ -24,701 +27,473 @@
         }
       }
     </script>
-  <script type="module">
-    import * as THREE from "three";
+    <script type="module">
+      import * as THREE from "three";
 
-    import Stats from "three/addons/libs/stats.module.js";
+      import Stats from "three/addons/libs/stats.module.js";
 
-    import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-    import { HDRCubeTextureLoader } from "three/addons/loaders/HDRCubeTextureLoader.js";
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+      import { HDRCubeTextureLoader } from "three/addons/loaders/HDRCubeTextureLoader.js";
 
-    import { FlakesTexture } from "three/addons/textures/FlakesTexture.js";
+      import { FlakesTexture } from "three/addons/textures/FlakesTexture.js";
 
-    import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+      import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
-    import { Octree } from "three/addons/math/Octree.js";
-    import { OctreeHelper } from "three/addons/helpers/OctreeHelper.js";
+      import { Octree } from "three/addons/math/Octree.js";
+      import { OctreeHelper } from "three/addons/helpers/OctreeHelper.js";
 
-    import { Capsule } from "three/addons/math/Capsule.js";
+      import { Capsule } from "three/addons/math/Capsule.js";
 
-    import { GUI } from "three/addons/libs/lil-gui.module.min.js";
+      import { GUI } from "three/addons/libs/lil-gui.module.min.js";
 
-    import { GolfBall } from "./golfBall.js";
-    import { CourseElement } from "./courseElements.js";
+      import { GolfBall } from "./golfBall.js";
+      import {
+        Green,
+        Hole,
+        Bumper,
+        addToScene,
+        addBrushToScene,
+      } from "./courseElements.js";
+      import { Renderer } from "./renderer.js";
+      import { CameraControls } from "./cameraControls.js";
+      import { Lighting } from "./lighting.js";
+      import { InputHandler } from "./inputHandler.js";
 
-    import {
-      SUBTRACTION,
-      INTERSECTION,
-      ADDITION,
-      Brush,
-      Evaluator,
-    } from "three-bvh-csg";
+      import {
+        SUBTRACTION,
+        INTERSECTION,
+        ADDITION,
+        Brush,
+        Evaluator,
+      } from "three-bvh-csg";
 
-    const params = {
-      operation: SUBTRACTION,
-      useGroups: true,
-      wireframe: false,
-    };
+      const params = {
+        operation: SUBTRACTION,
+        useGroups: true,
+        wireframe: false,
+      };
 
-    const clock = new THREE.Clock();
+      const clock = new THREE.Clock();
 
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x88ccee);
-    scene.fog = new THREE.Fog(0x88ccee, 0, 50);
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x88ccee);
+      scene.fog = new THREE.Fog(0x88ccee, 0, 50);
 
-    const camera = new THREE.PerspectiveCamera(
-      70,
-      window.innerWidth / window.innerHeight,
-      0.1,
-      1000,
-    );
-    // camera.rotation.order = "YXZ";
+      const container = document.getElementById("container");
 
-    const fillLight1 = new THREE.HemisphereLight(0x8dc1de, 0x00668d, 1.5);
-    fillLight1.position.set(2, 1, 1);
-    scene.add(fillLight1);
+      const camera = new THREE.PerspectiveCamera(
+        70,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000,
+      );
+      camera.rotation.order = "YXZ";
+      const controls = new CameraControls(camera, container);
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 2.5);
-    directionalLight.position.set(-5, 25, -1);
-    directionalLight.castShadow = true;
-    directionalLight.shadow.camera.near = 0.01;
-    directionalLight.shadow.camera.far = 500;
-    directionalLight.shadow.camera.right = 30;
-    directionalLight.shadow.camera.left = -30;
-    directionalLight.shadow.camera.top = 30;
-    directionalLight.shadow.camera.bottom = -30;
-    directionalLight.shadow.mapSize.width = 1024;
-    directionalLight.shadow.mapSize.height = 1024;
-    directionalLight.shadow.radius = 4;
-    directionalLight.shadow.bias = -0.00006;
-    scene.add(directionalLight);
+      const lighting = new Lighting(scene);
 
-    const container = document.getElementById("container");
-
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setAnimationLoop(animate);
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.VSMShadowMap;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    container.appendChild(renderer.domElement);
-
-    const controls = new OrbitControls(camera, container);
-    controls.minDistance = 1;
-    controls.maxDistance = 30;
-
-    // Move camera behind the golf ball
-    camera.position.set(0, 5, 15);
-
-    const stats = new Stats();
-    stats.domElement.style.position = "absolute";
-    stats.domElement.style.top = "0px";
-    container.appendChild(stats.domElement);
-
-    const GRAVITY = 30;
-
-    const NUM_SPHERES = 1;
-    const SPHERE_RADIUS = 0.2;
-
-    // Green1 dimensions
-    const GREEN_1_WIDTH = 5;
-    const GREEN_1_LENGTH = 25;
-    const GREEN_1_DEPTH = 5;
-
-    // Green2 dimensions
-    const GREEN_2_WIDTH = 5;
-    const GREEN_2_LENGTH = 25;
-    const GREEN_2_DEPTH = 5;
-
-    // Hole dimensions
-    const HOLE_RADIUS = SPHERE_RADIUS * 2;
-    const HOLE_DEPTH = SPHERE_RADIUS * 4;
-    const HOLE_SEGMENTS = 32;
-
-    const STEPS_PER_FRAME = 5;
-
-    const worldOctree = new Octree();
-
-    const shotPower = new THREE.Vector3();
-    const shotDirection = new THREE.Vector3();
-
-    let mouseTime = 0;
-
-    const keyStates = {};
-
-    const vector1 = new THREE.Vector3();
-    const vector2 = new THREE.Vector3();
-    const vector3 = new THREE.Vector3();
-
-    document.addEventListener("keydown", (event) => {
-      keyStates[event.code] = true;
-    });
-
-    document.addEventListener("keyup", (event) => {
-      keyStates[event.code] = false;
-    });
-
-    window.addEventListener("resize", onWindowResize);
-
-    function onWindowResize() {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setPixelRatio(window.devicePixelRatio);
       renderer.setSize(window.innerWidth, window.innerHeight);
-    }
+      renderer.setAnimationLoop(animate);
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.VSMShadowMap;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      container.appendChild(renderer.domElement);
 
-    function getForwardVector() {
-      camera.getWorldDirection(shotDirection);
-      shotDirection.y = 0;
-      shotDirection.normalize();
+      // Move camera behind the golf ball
+      camera.position.set(0, 5, 15);
 
-      return shotDirection;
-    }
+      const stats = new Stats();
+      stats.domElement.style.position = "absolute";
+      stats.domElement.style.top = "0px";
+      container.appendChild(stats.domElement);
 
-    function getSideVector() {
-      camera.getWorldDirection(shotDirection);
-      shotDirection.y = 0;
-      shotDirection.normalize();
-      shotDirection.cross(camera.up);
+      let shotPower = 5;
+      let shotDirection = new THREE.Vector3();
 
-      return shotDirection;
-    }
+      const GRAVITY = 30;
 
-    function keybinds(deltaTime) {
-      // gives a bit of air control
+      const NUM_SPHERES = 1;
+      const SPHERE_RADIUS = 0.2;
 
-      if (keyStates["KeyW"]) {
-        playerVelocity.add(getForwardVector().multiplyScalar(speedDelta));
-      }
+      // Green1 dimensions
+      const GREEN_1_WIDTH = 5;
+      const GREEN_1_LENGTH = 25;
+      const GREEN_1_DEPTH = 5;
 
-      if (keyStates["KeyS"]) {
-        playerVelocity.add(getForwardVector().multiplyScalar(-speedDelta));
-      }
+      // Green2 dimensions
+      const GREEN_2_WIDTH = 5;
+      const GREEN_2_LENGTH = 25;
+      const GREEN_2_DEPTH = 5;
 
-      if (keyStates["KeyA"]) {
-        playerVelocity.add(getSideVector().multiplyScalar(-speedDelta));
-      }
+      // Hole dimensions
+      const HOLE_RADIUS = SPHERE_RADIUS * 2;
+      const HOLE_DEPTH = SPHERE_RADIUS * 4;
+      const HOLE_SEGMENTS = 32;
 
-      if (keyStates["KeyD"]) {
-        playerVelocity.add(getSideVector().multiplyScalar(speedDelta));
-      }
+      const STEPS_PER_FRAME = 5;
 
-      if (keyStates["Space"]) {
-        console.log("golfBall.velocity", golfBall.velocity);
-        // Shoot ball only if it is not moving
-        if (golfBall.velocity.x <= 0.001 && golfBall.velocity.z <= 0.001) {
-          golfBall.shoot(camera, mouseTime, shotDirection);
+      const worldOctree = new Octree();
+
+      let mouseTime = 0;
+
+      let keyStates = {
+        KeyW: { pressed: false, actionExecuted: false },
+        KeyS: { pressed: false, actionExecuted: false },
+        KeyA: { pressed: false, actionExecuted: false },
+        KeyD: { pressed: false, actionExecuted: false },
+        Space: { pressed: false, actionExecuted: false }, // Example for shooting the ball
+      };
+
+      const vector1 = new THREE.Vector3();
+      const vector2 = new THREE.Vector3();
+      const vector3 = new THREE.Vector3();
+
+      document.addEventListener("keydown", (event) => {
+        if (keyStates[event.code]) {
+          keyStates[event.code].pressed = true;
+          keyStates[event.code].actionExecuted = false;
         }
+      });
+
+      document.addEventListener("keyup", (event) => {
+        if (keyStates[event.code]) {
+          keyStates[event.code].pressed = false;
+        }
+      });
+
+      window.addEventListener("resize", renderer.onWindowResize);
+
+      function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+
+        renderer.setSize(window.innerWidth, window.innerHeight);
       }
-    }
-    const loader = new GLTFLoader().setPath("./models/gltf/");
 
-    // let model = "collision-world.glb";
-    // let model = "hotdog_mini_golf_course.glb";
-    // let model = "mini_golf_field.glb";
-    // let model = "mini_golf_windmill.glb";
-    let model = "mini__golf.glb";
+      function getForwardVector() {
+        camera.getWorldDirection(shotDirection);
+        shotDirection.y = 0;
+        shotDirection.normalize();
 
-    loader.load(model, (gltf) => {
-      gltf.scene.scale.setScalar(5);
+        return shotDirection;
+      }
 
-      // Move the model to hole 2
-      gltf.scene.position.set(-10, 0, 50);
+      function getSideVector() {
+        camera.getWorldDirection(shotDirection);
+        shotDirection.y = 0;
+        shotDirection.normalize();
+        shotDirection.cross(camera.up);
 
-      //      scene.add(gltf.scene);
+        return shotDirection;
+      }
 
-      //     worldOctree.fromGraphNode(gltf.scene);
-
-      gltf.scene.traverse((child) => {
-        if (child.isMesh) {
-          child.castShadow = true;
-          child.receiveShadow = true;
-
-          if (child.material.map) {
-            child.material.map.anisotropy = 4;
+      function keybinds(deltaTime) {
+        if (keyStates["KeyW"].pressed && !keyStates["KeyW"].actionExecuted) {
+          if (shotPower < 10) {
+            console.log("shotPower", shotPower);
+            shotPower += 0.1;
+            keyStates["KeyW"].actionExecuted = true;
           }
         }
-      });
 
-      const helper = new OctreeHelper(worldOctree);
-      helper.visible = false;
-      scene.add(helper);
-
-      const gui = new GUI({ width: 200 });
-      gui.add({ debug: false }, "debug").onChange(function (value) {
-        helper.visible = value;
-      });
-    });
-
-    // Create the ground
-    // Ground geometry
-    const groundGeometry = new THREE.PlaneGeometry(100, 100, 100, 100);
-
-    // Ground material
-    const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x3f4d1b });
-
-    // Create ground mesh
-    const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-    ground.rotation.x = -Math.PI / 2;
-    ground.receiveShadow = true;
-    scene.add(ground);
-    worldOctree.fromGraphNode(ground);
-
-    // Green material
-    const greenMaterial = new THREE.MeshLambertMaterial({
-      color: 0x00ff00,
-
-      flatShading: true,
-      polygonOffset: true,
-      polygonOffsetUnits: 1,
-      polygonOffsetFactor: 1,
-    });
-
-    // Hole material
-    const holeMaterial = new THREE.MeshLambertMaterial({
-      color: 0xeeeeee,
-
-      polygonOffset: true,
-      polygonOffsetUnits: 1,
-      polygonOffsetFactor: 1,
-    });
-
-    // Create green1 geometry and brushes
-    const green1Geometry = new THREE.BoxGeometry(
-      GREEN_1_WIDTH,
-      GREEN_1_DEPTH,
-      GREEN_1_LENGTH,
-    );
-
-    const green1Mesh = new THREE.Mesh(green1Geometry, greenMaterial);
-    green1Mesh.position.set(0, 0, 0);
-    green1Mesh.castShadow = true;
-    green1Mesh.receiveShadow = true;
-    scene.add(green1Mesh);
-    worldOctree.fromGraphNode(green1Mesh);
-
-    // Green1 ramp
-    const ramp1Shape = new THREE.Shape()
-      .moveTo(0, 0, -GREEN_1_LENGTH / 2)
-      .lineTo(4, 0, GREEN_1_LENGTH / 2)
-      .lineTo(4, 2, GREEN_1_LENGTH / 2)
-      .lineTo(0, 0, -GREEN_1_LENGTH / 2);
-
-    const ramp1ExtrudeSettings = {
-      steps: 2,
-      depth: GREEN_1_WIDTH,
-      bevelEnabled: false,
-    };
-
-    const ramp1Geometry = new THREE.ExtrudeGeometry(
-      ramp1Shape,
-      ramp1ExtrudeSettings,
-    );
-
-    const ramp1Mesh = new THREE.Mesh(ramp1Geometry, greenMaterial);
-    ramp1Mesh.castShadow = true;
-    ramp1Mesh.receiveShadow = true;
-    ramp1Mesh.rotation.set(0, Math.PI / 2, 0);
-    ramp1Mesh.position.set(-GREEN_1_WIDTH / 2, 2.5, -3.5);
-
-    scene.add(ramp1Mesh);
-    worldOctree.fromGraphNode(ramp1Mesh);
-
-    // Create green1 brush
-    const green1Brush = new Brush(
-      new THREE.BoxGeometry(GREEN_1_WIDTH, GREEN_1_DEPTH, GREEN_1_WIDTH),
-      greenMaterial,
-    );
-
-    green1Brush.position.set(0, 2, -10);
-    green1Brush.updateMatrixWorld();
-
-    // Create hole1 brush
-    const hole1Brush = new Brush(
-      new THREE.CylinderGeometry(
-        HOLE_RADIUS,
-        HOLE_RADIUS,
-        HOLE_DEPTH,
-        HOLE_SEGMENTS,
-      ),
-      holeMaterial,
-    );
-
-    hole1Brush.position.set(0, 4.2, -10);
-    hole1Brush.updateMatrixWorld();
-
-    // Subtract hole1 from green1
-    let evaluator1 = new Evaluator();
-    evaluator1.useGroups = params.useGroups;
-    let result1;
-    result1 = evaluator1.evaluate(
-      green1Brush,
-      hole1Brush,
-      params.operation,
-      result1,
-    );
-    result1.castShadow = true;
-    result1.receiveShadow = true;
-    scene.add(result1);
-    worldOctree.fromGraphNode(result1);
-
-    // Create the bumpers
-    const bumperMaterial = new THREE.MeshLambertMaterial({ color: "red" });
-
-    const frontBumperH1Geometry = new THREE.BoxGeometry(
-      GREEN_1_WIDTH + 1,
-      GREEN_1_DEPTH + 4,
-      0.5,
-    );
-
-    const rearBumperH1Geometry = new THREE.BoxGeometry(
-      GREEN_1_WIDTH + 1,
-      GREEN_1_DEPTH + 1,
-      0.5,
-    );
-
-    const frontBumperH1 = new THREE.Mesh(
-      frontBumperH1Geometry,
-      bumperMaterial,
-    );
-    const backBumperH1 = new THREE.Mesh(rearBumperH1Geometry, bumperMaterial);
-
-    frontBumperH1.position.set(0, 1, -GREEN_1_LENGTH / 2 - 0.25);
-    backBumperH1.position.set(0, 0, GREEN_1_LENGTH / 2 + 0.25);
-
-    frontBumperH1.castShadow = true;
-    backBumperH1.castShadow = true;
-    frontBumperH1.receiveShadow = true;
-    backBumperH1.receiveShadow = true;
-
-    scene.add(frontBumperH1);
-    scene.add(backBumperH1);
-
-    worldOctree.fromGraphNode(frontBumperH1);
-    worldOctree.fromGraphNode(backBumperH1);
-
-    const lengthBumperH1Geometry = new THREE.BoxGeometry(
-      0.5,
-      GREEN_1_DEPTH + 1,
-      GREEN_1_LENGTH + 1,
-    );
-
-    const leftBumperH1 = new THREE.Mesh(
-      lengthBumperH1Geometry,
-      bumperMaterial,
-    );
-    const rightBumperH1 = new THREE.Mesh(
-      lengthBumperH1Geometry,
-      bumperMaterial,
-    );
-
-    leftBumperH1.position.set(-GREEN_1_WIDTH / 2 - 0.25, 0, 0);
-    rightBumperH1.position.set(GREEN_1_WIDTH / 2 + 0.25, 0, 0);
-
-    leftBumperH1.castShadow = true;
-    rightBumperH1.castShadow = true;
-    leftBumperH1.receiveShadow = true;
-    rightBumperH1.receiveShadow = true;
-
-    scene.add(leftBumperH1);
-    scene.add(rightBumperH1);
-
-    worldOctree.fromGraphNode(leftBumperH1);
-    worldOctree.fromGraphNode(rightBumperH1);
-
-    // Bumper Extrude settings
-    const BumperExtrudeSettings = {
-      steps: 2,
-      depth: 0.5,
-      bevelEnabled: false,
-    };
-
-    const leftRampBumperH1 = new THREE.Shape()
-      .moveTo(0, 0, 0.5)
-      .lineTo(4.5, 2.5, 0.5)
-      .lineTo(4.5 + GREEN_1_WIDTH, 2.5, 0.5)
-      .lineTo(4.5 + GREEN_1_WIDTH, 0, 0.5)
-      .lineTo(0, 0, 0.5);
-
-    const leftRampBumperH1Geometry = new THREE.ExtrudeGeometry(
-      leftRampBumperH1,
-      BumperExtrudeSettings,
-    );
-
-    const leftRampBumperH1Mesh = new THREE.Mesh(
-      leftRampBumperH1Geometry,
-      bumperMaterial,
-    );
-
-    const rightRampBumperH1 = new THREE.Shape()
-      .moveTo(0, 0, -0.5)
-      .lineTo(4.5, 2.5, -0.5)
-      .lineTo(4.5 + GREEN_1_WIDTH, 2.5, -0.5)
-      .lineTo(4.5 + GREEN_1_WIDTH, 0, -0.5)
-      .lineTo(0, 0, -0.5);
-
-    const rightRampBumperH1Geometry = new THREE.ExtrudeGeometry(
-      rightRampBumperH1,
-      BumperExtrudeSettings,
-    );
-
-    const rightRampBumperH1Mesh = new THREE.Mesh(
-      rightRampBumperH1Geometry,
-      bumperMaterial,
-    );
-
-    leftRampBumperH1Mesh.castShadow = true;
-    rightRampBumperH1Mesh.castShadow = true;
-    leftRampBumperH1Mesh.receiveShadow = true;
-    rightRampBumperH1Mesh.receiveShadow = true;
-    leftRampBumperH1Mesh.rotation.set(0, Math.PI / 2, 0);
-    rightRampBumperH1Mesh.rotation.set(0, Math.PI / 2, 0);
-    leftRampBumperH1Mesh.position.set(-GREEN_1_WIDTH / 2 - 0.5, 3, -3.5);
-    rightRampBumperH1Mesh.position.set(GREEN_1_WIDTH / 2, 3, -3.5);
-
-    scene.add(leftRampBumperH1Mesh);
-    scene.add(rightRampBumperH1Mesh);
-    worldOctree.fromGraphNode(leftRampBumperH1Mesh);
-    worldOctree.fromGraphNode(rightRampBumperH1Mesh);
-
-    // Green2 geometry and brushes
-    const green2Geometry1 = new THREE.BoxGeometry(
-      GREEN_2_WIDTH,
-      GREEN_2_DEPTH,
-      GREEN_2_LENGTH / 2,
-    );
-    const green2Mesh = new THREE.Mesh(green2Geometry1, greenMaterial);
-    green2Mesh.position.set(0, 0, -30);
-    green2Mesh.castShadow = true;
-    green2Mesh.receiveShadow = true;
-    scene.add(green2Mesh);
-    worldOctree.fromGraphNode(green2Mesh);
-
-    const green2Geometry2 = new THREE.BoxGeometry(
-      GREEN_2_WIDTH,
-      GREEN_2_DEPTH,
-      GREEN_2_LENGTH,
-    );
-    const green2Mesh2 = new THREE.Mesh(green2Geometry2, greenMaterial);
-    green2Mesh2.rotation.set(0, Math.PI / 2, 0);
-    green2Mesh2.position.set(GREEN_2_WIDTH + 5, 0, -33.75);
-    green2Mesh2.castShadow = true;
-    green2Mesh2.receiveShadow = true;
-    scene.add(green2Mesh2);
-    worldOctree.fromGraphNode(green2Mesh2);
-
-    // const green2Brush = new Brush(
-    //   new THREE.BoxGeometry(GREEN_2_WIDTH, GREEN_2_DEPTH, GREEN_2_LENGTH),
-    //   greenMaterial,
-    // );
-    //
-    // // Rotate green2Brush2 90 degrees
-    // green2Brush.rotation.set(0, Math.PI / 2, 0);
-    // green2Brush.position.set(10, 0, -40);
-    // green2Brush.updateMatrixWorld();
-
-    // Create cylindrical green2 brush
-    const green2Brush = new Brush(
-      new THREE.CylinderGeometry(
-        GREEN_2_WIDTH,
-        GREEN_2_WIDTH,
-        GREEN_2_DEPTH,
-        32,
-      ),
-      greenMaterial,
-    );
-    green2Brush.position.set(27.5, -0.5, -33.75);
-    green2Brush.updateMatrixWorld();
-
-    // Create hole2 brush
-    const hole2Brush = new Brush(
-      new THREE.CylinderGeometry(
-        HOLE_RADIUS,
-        HOLE_RADIUS,
-        HOLE_DEPTH,
-        HOLE_SEGMENTS,
-      ),
-      holeMaterial,
-    );
-
-    hole2Brush.position.set(27.5, 1.7, -33.75);
-    hole2Brush.updateMatrixWorld();
-
-    // Subtract hole2 from green2
-    let evaluator2 = new Evaluator();
-    evaluator2.useGroups = params.useGroups;
-    let result2;
-    result2 = evaluator2.evaluate(
-      green2Brush,
-      hole2Brush,
-      params.operation,
-      result2,
-    );
-    result2.castShadow = true;
-    result2.receiveShadow = true;
-    scene.add(result2);
-    worldOctree.fromGraphNode(result2);
-
-    // Create the hole 2 bumpers
-    // const bumper1_2 = new THREE.Mesh(frontBumperH1Geometry, bumperMaterial);
-    const rearBumperH2 = new THREE.Mesh(
-      new THREE.BoxGeometry(0.5, GREEN_2_DEPTH + 1, GREEN_2_WIDTH + 1),
-      bumperMaterial,
-    );
-
-    const frontLeftBumperH2 = new THREE.Mesh(
-      new THREE.BoxGeometry(0.5, GREEN_2_DEPTH + 1, GREEN_2_LENGTH + 1),
-      bumperMaterial,
-    );
-
-    const frontRightBumperH2 = new THREE.Mesh(
-      new THREE.BoxGeometry(
-        0.5,
-        GREEN_2_DEPTH + 1,
-        GREEN_2_LENGTH - GREEN_2_WIDTH + 0.5,
-      ),
-      bumperMaterial,
-    );
-
-    rearBumperH2.rotation.set(0, Math.PI / 2, 0);
-    frontLeftBumperH2.rotation.set(0, Math.PI / 2, 0);
-    frontRightBumperH2.rotation.set(0, Math.PI / 2, 0);
-    rearBumperH2.position.set(0, 0, -28.5 + GREEN_2_WIDTH);
-    frontLeftBumperH2.position.set(10, 0, -31.5 - GREEN_2_WIDTH);
-    frontRightBumperH2.position.set(10.25 + GREEN_2_WIDTH / 2, 0, -31);
-    rearBumperH2.castShadow = true;
-    frontLeftBumperH2.castShadow = true;
-    frontRightBumperH2.castShadow = true;
-    rearBumperH2.recieveShadow = true;
-    frontLeftBumperH2.receiveShadow = true;
-    frontRightBumperH2.receiveShadow = true;
-
-    scene.add(rearBumperH2);
-    scene.add(frontLeftBumperH2);
-    scene.add(frontRightBumperH2);
-    worldOctree.fromGraphNode(rearBumperH2);
-    worldOctree.fromGraphNode(frontLeftBumperH2);
-    worldOctree.fromGraphNode(frontRightBumperH2);
-
-    const leftBumperH2 = new THREE.Mesh(
-      new THREE.BoxGeometry(0.5, GREEN_2_DEPTH + 1, GREEN_2_LENGTH / 2 + 1),
-      bumperMaterial,
-    );
-
-    const rightBumperH2 = new THREE.Mesh(
-      new THREE.BoxGeometry(
-        0.5,
-        GREEN_2_DEPTH + 1,
-        GREEN_2_LENGTH / 2 - GREEN_2_WIDTH,
-      ),
-      bumperMaterial,
-    );
-
-    leftBumperH2.position.set(-GREEN_2_WIDTH / 2 - 0.25, 0, -30);
-    rightBumperH2.position.set(GREEN_2_WIDTH / 2 + 0.25, 0, -27.5);
-
-    leftBumperH2.castShadow = true;
-    rightBumperH2.castShadow = true;
-    leftBumperH2.recieveShadow = true;
-    rightBumperH2.recieveShadow = true;
-
-    scene.add(leftBumperH2);
-    scene.add(rightBumperH2);
-    worldOctree.fromGraphNode(leftBumperH2);
-    worldOctree.fromGraphNode(rightBumperH2);
-
-    const leftFinalBumperH2 = new THREE.Mesh(
-      new THREE.BoxGeometry(0.5, GREEN_2_DEPTH + 1, GREEN_2_WIDTH / 2 - 0.5),
-      bumperMaterial,
-    );
-
-    const rightFinalBumperH2 = new THREE.Mesh(
-      new THREE.BoxGeometry(0.5, GREEN_2_DEPTH + 1, GREEN_2_WIDTH / 2 - 0.5),
-      bumperMaterial,
-    );
-
-    leftFinalBumperH2.rotation.set(0, Math.PI / 10, 0);
-    rightFinalBumperH2.rotation.set(0, -Math.PI / 10, 0);
-
-    leftFinalBumperH2.position.set(
-      GREEN_2_LENGTH - GREEN_2_WIDTH / 2 - 0.05,
-      0,
-      -31.8,
-    );
-    rightFinalBumperH2.position.set(
-      GREEN_2_LENGTH - GREEN_2_WIDTH / 2 - 0.05,
-      0,
-      -35.7,
-    );
-
-    leftFinalBumperH2.castShadow = true;
-    rightFinalBumperH2.castShadow = true;
-    leftFinalBumperH2.recieveShadow = true;
-    rightFinalBumperH2.recieveShadow = true;
-
-    scene.add(leftFinalBumperH2);
-    scene.add(rightFinalBumperH2);
-    worldOctree.fromGraphNode(leftFinalBumperH2);
-    worldOctree.fromGraphNode(rightFinalBumperH2);
-
-    // Create an arc circle with an opening for the ball to enter
-    // https://github.com/mrdoob/three.js/blob/master/examples/webgl_geometry_shapes.html
-    const holeBumperShapeH2 = new THREE.Shape()
-      .moveTo(0, 0, 0)
-      .absarc(0, 0, GREEN_2_WIDTH + 0.25, 0, Math.PI * 2, false);
-
-    const holeBumperCenterH2 = new THREE.Path()
-      .moveTo(0, 0, 0)
-      .absarc(0, 0, GREEN_2_WIDTH, 0, Math.PI * 2, false);
-
-    holeBumperShapeH2.holes.push(holeBumperCenterH2);
-
-    const holeBumperExtrudeSettings = {
-      steps: 2,
-      depth: GREEN_2_DEPTH + 0.5,
-      bevelEnabled: false,
-    };
-
-    const holeBumperGeometryH2 = new THREE.ExtrudeGeometry(
-      holeBumperShapeH2,
-      holeBumperExtrudeSettings,
-    );
-
-    const holeBumperH2 = new THREE.Mesh(holeBumperGeometryH2, bumperMaterial);
-    holeBumperH2.position.set(27.5, GREEN_2_DEPTH / 2, -33.75);
-    holeBumperH2.updateMatrixWorld();
-    holeBumperH2.rotation.set(Math.PI / 2, 0, 0);
-    holeBumperH2.castShadow = true;
-    holeBumperH2.receiveShadow = true;
-    scene.add(holeBumperH2);
-    worldOctree.fromGraphNode(holeBumperH2);
-
-    // Create course elements with ./courseElements.js instead of the code above
-    async function initializeScene() {
-      const { }
-    }
-
-    const golfBall = new GolfBall(new THREE.Vector3(0, 4, 10), SPHERE_RADIUS);
-    golfBall.addToScene(scene, worldOctree);
-
-    function animate() {
-      const deltaTime = Math.min(0.05, clock.getDelta()) / STEPS_PER_FRAME;
-
-      // we look for collisions in substeps to mitigate the risk of
-      // an object traversing another too quickly for detection.
-
-      for (let i = 0; i < STEPS_PER_FRAME; i++) {
-        keybinds(deltaTime);
-
-        golfBall.update(deltaTime, worldOctree, GRAVITY);
+        if (keyStates["KeyS"]) {
+          if (shotPower > 0.1) {
+            console.log("shotPower", shotPower);
+            shotPower -= 0.1;
+          }
+        }
+
+        if (keyStates["KeyA"]) {
+          console.log("shotDirection", shotDirection);
+          shotDirection.x -= 0.1;
+        }
+
+        if (keyStates["KeyD"]) {
+          console.log("shotDirection", shotDirection);
+          shotDirection.x += 0.1;
+        }
+
+        if (keyStates["Space"]) {
+          console.log("golfBall.velocity", golfBall.velocity);
+          // Shoot ball only if it is not moving
+          if (golfBall.velocity.x <= 0.001 && golfBall.velocity.z <= 0.001) {
+            golfBall.shoot(camera, mouseTime, shotDirection);
+          }
+        }
       }
 
-      renderer.render(scene, camera);
+      const loader = new GLTFLoader().setPath("./models/gltf/");
 
-      stats.update();
-    }
-  </script>
-</body>
+      // let model = "collision-world.glb";
+      // let model = "hotdog_mini_golf_course.glb";
+      // let model = "mini_golf_field.glb";
+      // let model = "mini_golf_windmill.glb";
+      let model = "mini__golf.glb";
 
+      loader.load(model, (gltf) => {
+        gltf.scene.scale.setScalar(5);
+
+        // Move the model to hole 2
+        gltf.scene.position.set(-10, 0, 50);
+
+        //      scene.add(gltf.scene);
+
+        //     worldOctree.fromGraphNode(gltf.scene);
+
+        gltf.scene.traverse((child) => {
+          if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+
+            if (child.material.map) {
+              child.material.map.anisotropy = 4;
+            }
+          }
+        });
+
+        const helper = new OctreeHelper(worldOctree);
+        helper.visible = false;
+        scene.add(helper);
+
+        const gui = new GUI({ width: 200 });
+        gui.add({ debug: false }, "debug").onChange(function (value) {
+          helper.visible = value;
+        });
+      });
+
+      // Create the ground
+      // Ground geometry
+      const groundGeometry = new THREE.PlaneGeometry(100, 100, 100, 100);
+
+      // Ground material
+      const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x3f4d1b });
+
+      // Create ground mesh
+      const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+      ground.rotation.x = -Math.PI / 2;
+      ground.castShadow = true;
+      ground.receiveShadow = true;
+      scene.add(ground);
+      worldOctree.fromGraphNode(ground);
+
+      // Create Green1
+      const hole1Green = new Green(
+        new THREE.BoxGeometry(GREEN_1_WIDTH, GREEN_1_DEPTH, GREEN_1_LENGTH),
+        new THREE.Vector3(0, 0, 0),
+      );
+      addToScene(hole1Green, scene, worldOctree);
+
+      // Create Green1Ramp
+      const hole1Ramp = new Green(
+        new THREE.Shape()
+          .moveTo(0, 0, -GREEN_1_LENGTH / 2)
+          .lineTo(4, 0, GREEN_1_LENGTH / 2)
+          .lineTo(4, 2, GREEN_1_LENGTH / 2)
+          .lineTo(0, 0, -GREEN_1_LENGTH / 2),
+        new THREE.Vector3(-GREEN_1_WIDTH / 2, 2.5, -3.5),
+        new THREE.Euler(0, Math.PI / 2, 0),
+        { steps: 2, depth: GREEN_1_WIDTH, bevelEnabled: false },
+      );
+      addToScene(hole1Ramp, scene, worldOctree);
+
+      // Create Hole1 Bumpers
+      const hole1BumperFront = new Bumper(
+        new THREE.BoxGeometry(GREEN_1_WIDTH + 1, GREEN_1_DEPTH + 4, 0.5),
+        new THREE.Vector3(0, 1, -GREEN_1_LENGTH / 2 - 0.25),
+      );
+      addToScene(hole1BumperFront, scene, worldOctree);
+
+      const hole1BumperBack = new Bumper(
+        new THREE.BoxGeometry(GREEN_1_WIDTH + 1, GREEN_1_DEPTH + 1, 0.5),
+        new THREE.Vector3(0, 0, GREEN_1_LENGTH / 2 + 0.25),
+      );
+      addToScene(hole1BumperBack, scene, worldOctree);
+
+      const hole1BumperLeft = new Bumper(
+        new THREE.BoxGeometry(0.5, GREEN_1_DEPTH + 1, GREEN_1_LENGTH + 1),
+        new THREE.Vector3(-GREEN_1_WIDTH / 2 - 0.25, 0, 0),
+      );
+      addToScene(hole1BumperLeft, scene, worldOctree);
+
+      const hole1BumperRight = new Bumper(
+        new THREE.BoxGeometry(0.5, GREEN_1_DEPTH + 1, GREEN_1_LENGTH + 1),
+        new THREE.Vector3(GREEN_1_WIDTH / 2 + 0.25, 0, 0),
+      );
+      addToScene(hole1BumperRight, scene, worldOctree);
+
+      const hole1BumperLeftRamp = new Bumper(
+        new THREE.Shape()
+          .moveTo(0, 0, 0.5)
+          .lineTo(4.5, 2.5, 0.5)
+          .lineTo(4.5 + GREEN_1_WIDTH, 2.5, 0.5)
+          .lineTo(4.5 + GREEN_1_WIDTH, 0, 0.5)
+          .lineTo(0, 0, 0.5),
+        new THREE.Vector3(-GREEN_1_WIDTH / 2 - 0.5, 3, -3.5),
+        new THREE.Euler(0, Math.PI / 2, 0),
+        { steps: 2, depth: 0.5, bevelEnabled: false },
+      );
+      addToScene(hole1BumperLeftRamp, scene, worldOctree);
+
+      const hole1BumperRightRamp = new Bumper(
+        new THREE.Shape()
+          .moveTo(0, 0, -0.5)
+          .lineTo(4.5, 2.5, -0.5)
+          .lineTo(4.5 + GREEN_1_WIDTH, 2.5, -0.5)
+          .lineTo(4.5 + GREEN_1_WIDTH, 0, -0.5)
+          .lineTo(0, 0, -0.5),
+        new THREE.Vector3(GREEN_1_WIDTH / 2, 3, -3.5),
+        new THREE.Euler(0, Math.PI / 2, 0),
+        { steps: 2, depth: 0.5, bevelEnabled: false },
+      );
+      addToScene(hole1BumperRightRamp, scene, worldOctree);
+
+      // Create Hole1
+      const hole1HoleGreen = new Green(
+        new THREE.BoxGeometry(GREEN_1_WIDTH, GREEN_1_DEPTH, GREEN_1_WIDTH),
+        new THREE.Vector3(0, 2, -10),
+      );
+
+      const hole1Hole = new Hole(new THREE.Vector3(0, 4.2, -10));
+
+      let hole1Result = hole1HoleGreen.applyCSG(hole1Hole);
+      addBrushToScene(hole1Result, scene, worldOctree);
+
+      // Create Green2
+      const hole2Green1 = new Green(
+        new THREE.BoxGeometry(GREEN_2_WIDTH, GREEN_2_DEPTH, GREEN_2_LENGTH / 2),
+        new THREE.Vector3(0, 0, -30),
+      );
+      addToScene(hole2Green1, scene, worldOctree);
+
+      const hole2Green2 = new Green(
+        new THREE.BoxGeometry(GREEN_2_WIDTH, GREEN_2_DEPTH, GREEN_2_LENGTH),
+        new THREE.Vector3(GREEN_2_WIDTH + 5, 0, -33.75),
+        new THREE.Euler(0, Math.PI / 2, 0),
+      );
+      addToScene(hole2Green2, scene, worldOctree);
+
+      const hole2HoleGreen = new Green(
+        new THREE.CylinderGeometry(
+          GREEN_2_WIDTH,
+          GREEN_2_WIDTH,
+          GREEN_2_DEPTH,
+          32,
+        ),
+        new THREE.Vector3(27.5, -0.5, -33.75),
+      );
+
+      const hole2Hole = new Hole(new THREE.Vector3(27.5, 1.7, -33.75));
+
+      let hole2Result = hole2HoleGreen.applyCSG(hole2Hole);
+      addBrushToScene(hole2Result, scene, worldOctree);
+
+      // Create Hole2 Bumpers
+      const hole2BumperRear = new Bumper(
+        new THREE.BoxGeometry(0.5, GREEN_2_DEPTH + 1, GREEN_2_WIDTH + 1),
+        new THREE.Vector3(0, 0, -28.5 + GREEN_2_WIDTH),
+        new THREE.Euler(0, Math.PI / 2, 0),
+      );
+      addToScene(hole2BumperRear, scene, worldOctree);
+
+      const hole2BumperFrontLeft = new Bumper(
+        new THREE.BoxGeometry(0.5, GREEN_2_DEPTH + 1, GREEN_2_LENGTH + 1),
+        new THREE.Vector3(10, 0, -31.5 - GREEN_2_WIDTH),
+        new THREE.Euler(0, Math.PI / 2, 0),
+      );
+      addToScene(hole2BumperFrontLeft, scene, worldOctree);
+
+      const hole2BumperFrontRight = new Bumper(
+        new THREE.BoxGeometry(
+          0.5,
+          GREEN_2_DEPTH + 1,
+          GREEN_2_LENGTH - GREEN_2_WIDTH + 0.5,
+        ),
+        new THREE.Vector3(10.25 + GREEN_2_WIDTH / 2, 0, -31),
+        new THREE.Euler(0, Math.PI / 2, 0),
+      );
+      addToScene(hole2BumperFrontRight, scene, worldOctree);
+
+      const hole2BumperLeft = new Bumper(
+        new THREE.BoxGeometry(0.5, GREEN_2_DEPTH + 1, GREEN_2_LENGTH / 2 + 1),
+        new THREE.Vector3(-GREEN_2_WIDTH / 2 - 0.25, 0, -30),
+      );
+      addToScene(hole2BumperLeft, scene, worldOctree);
+
+      const hole2BumperRight = new Bumper(
+        new THREE.BoxGeometry(
+          0.5,
+          GREEN_2_DEPTH + 1,
+          GREEN_2_LENGTH / 2 - GREEN_2_WIDTH,
+        ),
+        new THREE.Vector3(GREEN_2_WIDTH / 2 + 0.25, 0, -27.5),
+      );
+      addToScene(hole2BumperRight, scene, worldOctree);
+
+      const hole2BumperLeftFinal = new Bumper(
+        new THREE.BoxGeometry(0.5, GREEN_2_DEPTH + 1, GREEN_2_WIDTH / 2 - 0.5),
+        new THREE.Vector3(GREEN_2_LENGTH - GREEN_2_WIDTH / 2 - 0.05, 0, -31.8),
+        new THREE.Euler(0, Math.PI / 10, 0),
+      );
+      addToScene(hole2BumperLeftFinal, scene, worldOctree);
+
+      const hole2BumperRightFinal = new Bumper(
+        new THREE.BoxGeometry(0.5, GREEN_2_DEPTH + 1, GREEN_2_WIDTH / 2 - 0.5),
+        new THREE.Vector3(GREEN_2_LENGTH - GREEN_2_WIDTH / 2 - 0.05, 0, -35.7),
+        new THREE.Euler(0, -Math.PI / 10, 0),
+      );
+      addToScene(hole2BumperRightFinal, scene, worldOctree);
+
+      // Create Hole2 Bumper Arc
+      // Create an arc circle with an opening for the ball to enter
+      // https://github.com/mrdoob/three.js/blob/master/examples/webgl_geometry_shapes.html
+      const hole2BumperShape = new THREE.Shape()
+        .moveTo(0, 0, 0)
+        .absarc(0, 0, GREEN_2_WIDTH + 0.25, 0, Math.PI * 2, false);
+      const hole2BumperCenter = new THREE.Path()
+        .moveTo(0, 0, 0)
+        .absarc(0, 0, GREEN_2_WIDTH, 0, Math.PI * 2, false);
+
+      hole2BumperShape.holes.push(hole2BumperCenter);
+
+      const hole2BumperExtrudeSettings = {
+        steps: 2,
+        depth: GREEN_2_DEPTH + 0.5,
+        bevelEnabled: false,
+      };
+
+      const hole2BumperGeometry = new THREE.ExtrudeGeometry(
+        hole2BumperShape,
+        hole2BumperExtrudeSettings,
+      );
+
+      const hole2Bumper = new Bumper(
+        hole2BumperGeometry,
+        new THREE.Vector3(27.5, GREEN_2_DEPTH / 2, -33.75),
+        new THREE.Euler(Math.PI / 2, 0, 0),
+      );
+      addToScene(hole2Bumper, scene, worldOctree);
+
+      const golfBall = new GolfBall(new THREE.Vector3(0, 4, 10), SPHERE_RADIUS);
+      addToScene(golfBall, scene, worldOctree);
+
+      function animate() {
+        const deltaTime = Math.min(0.05, clock.getDelta()) / STEPS_PER_FRAME;
+
+        // we look for collisions in substeps to mitigate the risk of
+        // an object traversing another too quickly for detection.
+
+        for (let i = 0; i < STEPS_PER_FRAME; i++) {
+          keybinds(deltaTime);
+
+          golfBall.update(deltaTime, worldOctree, GRAVITY);
+        }
+
+        renderer.render(scene, camera);
+
+        stats.update();
+      }
+    </script>
+  </body>
 </html>
