@@ -1,17 +1,51 @@
 // inputHandler.js
 
-const keyStates = {};
+import { CameraControls } from "./cameraControls.js";
 
 export class InputHandler {
-  constructor(document) {
+  constructor(document, golfBall, camera, cameraControls) {
+    this.document = document;
+    this.golfBall = golfBall;
+    this.camera = camera;
+    this.cameraControls = cameraControls;
+
+    const keyStates = {};
+
     document.addEventListener("keydown", (event) => {
-      console.log("event.key", event.key);
-      keyStates[event.key] = true;
+      console.log("event.code", event.code);
+      keyStates[event.code] = true;
+      switch (event.code) {
+        case "KeyW":
+          console.log("W key pressed");
+          golfBall.shotPower += 0.1;
+          break;
+        case "KeyS":
+          golfBall.shotPower -= 0.1;
+          break;
+        case "Space":
+          // Shoot the ball only if the camera is locked and the ball is not moving
+          if (golfBall.velocity.x <= 0.001 && golfBall.velocity.z <= 0.001) {
+            console.log("Velocity", golfBall.velocity.x, golfBall.velocity.z);
+            console.log("Space key pressed");
+            golfBall.shoot(camera);
+          }
+        case "KeyT":
+          // Toggle camera mode
+          cameraControls.toggleCameraMode();
+      }
     });
 
     document.addEventListener("keyup", (event) => {
-      console.log("event.key", event.key);
-      keyStates[event.key] = false;
+      console.log("event.code", event.code);
+      keyStates[event.code] = false;
+    });
+
+    document.body.addEventListener("mousemove", (event) => {
+      if (cameraControls.isLockedBehindBall) {
+        const rotationSpeed = 0.01;
+        const rotationAngle = -event.movementX * rotationSpeed;
+        this.cameraControls.rotateCamera(rotationAngle);
+      }
     });
   }
 
@@ -30,33 +64,5 @@ export class InputHandler {
     shotDirection.cross(camera.up);
 
     return shotDirection;
-  }
-
-  updateShot(shotPower, shotDirection) {
-    if (keyStates["KeyW"]) {
-      if (shotPower < 10) {
-        console.log("shotPower", shotPower);
-        shotPower += 0.1;
-      }
-    }
-
-    if (keyStates["KeyS"]) {
-      if (shotPower > 0.1) {
-        console.log("shotPower", shotPower);
-        shotPower -= 0.1;
-      }
-    }
-
-    if (keyStates["KeyA"]) {
-      console.log("shotDirection", shotDirection);
-      shotDirection.x -= 0.1;
-    }
-
-    if (keyStates["KeyD"]) {
-      console.log("shotDirection", shotDirection);
-      shotDirection.x += 0.1;
-    }
-
-    return shotPower, shotDirection;
   }
 }

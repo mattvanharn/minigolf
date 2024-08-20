@@ -6,6 +6,8 @@ export class GolfBall {
     this.position = position;
     this.radius = radius;
     this.velocity = new THREE.Vector3(0, 0, 0);
+    this.shotPower = 1;
+    this.shotDirection = new THREE.Vector3();
 
     this.geometry = new THREE.SphereGeometry(this.radius, 32, 32);
     this.textureLoader = new THREE.TextureLoader();
@@ -48,14 +50,9 @@ export class GolfBall {
     this.mesh.position.copy(this.collider.center);
   }
 
-  shoot(camera, mouseTime, shotDirection) {
-    camera.getWorldDirection(shotDirection);
+  shoot(camera) {
+    camera.getWorldDirection(this.shotDirection);
 
-    const impulse =
-      0.1 + 30 * (1 - Math.exp((mouseTime - performance.now()) * 0.001));
-    this.velocity.multiplyScalar(impulse);
-
-    console.log("golfBall.velocity", this.velocity);
-    console.log("shotDirection", this.velocity);
+    this.velocity.copy(this.shotDirection).multiplyScalar(this.shotPower);
   }
 }

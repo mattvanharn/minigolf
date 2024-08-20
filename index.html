@@ -88,7 +88,6 @@
         1000,
       );
       camera.rotation.order = "YXZ";
-      const controls = new CameraControls(camera, container);
 
       const lighting = new Lighting(scene);
 
@@ -108,9 +107,6 @@
       stats.domElement.style.position = "absolute";
       stats.domElement.style.top = "0px";
       container.appendChild(stats.domElement);
-
-      let shotPower = 5;
-      let shotDirection = new THREE.Vector3();
 
       const GRAVITY = 30;
 
@@ -138,30 +134,21 @@
 
       let mouseTime = 0;
 
-      let keyStates = {
-        KeyW: { pressed: false, actionExecuted: false },
-        KeyS: { pressed: false, actionExecuted: false },
-        KeyA: { pressed: false, actionExecuted: false },
-        KeyD: { pressed: false, actionExecuted: false },
-        Space: { pressed: false, actionExecuted: false }, // Example for shooting the ball
-      };
+      const golfBall = new GolfBall(new THREE.Vector3(0, 4, 10), SPHERE_RADIUS);
+      addToScene(golfBall, scene, worldOctree);
+
+      const controls = new CameraControls(camera, container, golfBall);
+
+      const inputHandler = new InputHandler(
+        document,
+        golfBall,
+        camera,
+        controls,
+      );
 
       const vector1 = new THREE.Vector3();
       const vector2 = new THREE.Vector3();
       const vector3 = new THREE.Vector3();
-
-      document.addEventListener("keydown", (event) => {
-        if (keyStates[event.code]) {
-          keyStates[event.code].pressed = true;
-          keyStates[event.code].actionExecuted = false;
-        }
-      });
-
-      document.addEventListener("keyup", (event) => {
-        if (keyStates[event.code]) {
-          keyStates[event.code].pressed = false;
-        }
-      });
 
       window.addEventListener("resize", renderer.onWindowResize);
 
@@ -187,41 +174,6 @@
         shotDirection.cross(camera.up);
 
         return shotDirection;
-      }
-
-      function keybinds(deltaTime) {
-        if (keyStates["KeyW"].pressed && !keyStates["KeyW"].actionExecuted) {
-          if (shotPower < 10) {
-            console.log("shotPower", shotPower);
-            shotPower += 0.1;
-            keyStates["KeyW"].actionExecuted = true;
-          }
-        }
-
-        if (keyStates["KeyS"]) {
-          if (shotPower > 0.1) {
-            console.log("shotPower", shotPower);
-            shotPower -= 0.1;
-          }
-        }
-
-        if (keyStates["KeyA"]) {
-          console.log("shotDirection", shotDirection);
-          shotDirection.x -= 0.1;
-        }
-
-        if (keyStates["KeyD"]) {
-          console.log("shotDirection", shotDirection);
-          shotDirection.x += 0.1;
-        }
-
-        if (keyStates["Space"]) {
-          console.log("golfBall.velocity", golfBall.velocity);
-          // Shoot ball only if it is not moving
-          if (golfBall.velocity.x <= 0.001 && golfBall.velocity.z <= 0.001) {
-            golfBall.shoot(camera, mouseTime, shotDirection);
-          }
-        }
       }
 
       const loader = new GLTFLoader().setPath("./models/gltf/");
@@ -475,9 +427,6 @@
       );
       addToScene(hole2Bumper, scene, worldOctree);
 
-      const golfBall = new GolfBall(new THREE.Vector3(0, 4, 10), SPHERE_RADIUS);
-      addToScene(golfBall, scene, worldOctree);
-
       function animate() {
         const deltaTime = Math.min(0.05, clock.getDelta()) / STEPS_PER_FRAME;
 
@@ -485,12 +434,12 @@
         // an object traversing another too quickly for detection.
 
         for (let i = 0; i < STEPS_PER_FRAME; i++) {
-          keybinds(deltaTime);
-
           golfBall.update(deltaTime, worldOctree, GRAVITY);
         }
 
         renderer.render(scene, camera);
+
+        // controls.update();
 
         stats.update();
       }
