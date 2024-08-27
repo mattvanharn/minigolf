@@ -66,16 +66,6 @@ export class CameraControls {
   }
 
   rotateCamera(targetRotationAngle) {
-    this.rotationAngle += targetRotationAngle;
-    const radius = this.lockedCameraDistance;
-    const height = this.lockedCameraHeight;
-    const golfBallPosition = this.golfBall.position;
-
-    this.camera.position.set(
-      golfBallPosition.x + radius * Math.sin(this.rotationAngle),
-      golfBallPosition.y + height,
-      golfBallPosition.z + radius * Math.cos(this.rotationAngle),
-    );
-    this.camera.lookAt(golfBallPosition);
+    // Rotate the camera around the golf ball
   }
 }
