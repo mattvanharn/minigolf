@@ -2,13 +2,14 @@
 import * as THREE from "three";
 
 export class GolfBall {
-  constructor(position, radius) {
+  constructor(position, radius, gameState) {
     this.position = position;
     this.radius = radius;
     this.velocity = new THREE.Vector3(0, 0, 0);
     this.shotPower = 10;
     this.shotDirection = new THREE.Vector3();
     this.isShot = false;
+    this.gameState = gameState;
 
     this.geometry = new THREE.SphereGeometry(this.radius, 32, 32);
     this.textureLoader = new THREE.TextureLoader();
@@ -28,6 +29,34 @@ export class GolfBall {
     this.mesh.position.copy(this.position);
 
     this.collider = new THREE.Sphere(this.mesh.position, this.radius);
+  }
+
+  getShotPower() {
+    return this.shotPower;
+  }
+
+  setShotPower(power) {
+    this.shotPower = power;
+  }
+
+  adjustShotPower(power) {
+    this.shotPower += power;
+  }
+
+  getIsShot() {
+    return this.isShot;
+  }
+
+  setIsShot(shot) {
+    this.isShot = shot;
+  }
+
+  getPosition() {
+    return this.mesh.position.clone();
+  }
+
+  setPosition(position) {
+    this.mesh.position.copy(position);
   }
 
   update(deltaTime, worldOctree, GRAVITY) {
@@ -52,7 +81,11 @@ export class GolfBall {
   }
 
   shoot(camera) {
+    // Update golf ball status and game state
+    console.log("Shot power:", this.shotPower);
     this.isShot = true;
+    this.gameState.incrementShotsTaken();
+
     camera.getWorldDirection(this.shotDirection);
 
     this.velocity.copy(this.shotDirection).multiplyScalar(this.shotPower);
@@ -61,6 +94,55 @@ export class GolfBall {
   }
 
   ballMoving() {
-    return this.velocity.x <= 0.001 && this.velocity.z <= 0.001;
+    // Set the velocity to zero if the ball is moving very slowly for a period of time
+    if (this.velocity.length() < 0.01) {
+      this.velocity.set(0, 0, 0);
+    }
+    return this.velocity.x !== 0 || this.velocity.z !== 0;
+  }
+
+  // Check if the golf ball is in the hole
+  checkHole(holePosition, HOLE_RADIUS) {
+    // console.log(holePosition);
+    if (this.collider.center.distanceTo(holePosition) < HOLE_RADIUS) {
+      if (this.gameState.getShotsTaken() === 1) {
+        console.log("Hole in one!");
+      } else {
+        let strokesBelowPar =
+          this.gameState.getShotsTaken() - this.gameState.getHoleParScore();
+        switch (strokesBelowPar) {
+          case strokesBelowPar:
+          case -2:
+            console.log("Eagle!");
+            break;
+          case -1:
+            console.log("Birdie!");
+            break;
+          case 0:
+            console.log("Par!");
+            break;
+          case 1:
+            console.log("Bogey!");
+            break;
+          case 2:
+            console.log("Double Bogey!");
+            break;
+          case 3:
+            console.log("Triple Bogey!");
+            break;
+          default:
+            console.log("Over par!");
+            break;
+        }
+      }
+      // Record the score and move to the next hole
+      this.gameState.recordScore();
+      this.gameState.incrementCurrentHoleIndex();
+      this.gameState.resetShotsTaken();
+
+      return true;
+    } else {
+      return false;
+    }
   }
 }

@@ -18,18 +18,19 @@ export class InputHandler {
       switch (event.code) {
         case "KeyW":
           console.log("W key pressed");
-          golfBall.shotPower += 0.1;
+          golfBall.adjustShotPower(0.1);
           break;
         case "KeyS":
-          golfBall.shotPower -= 0.1;
+          golfBall.adjustShotPower(-0.1);
           break;
         case "Space":
           // Shoot the ball only if the camera is locked and the ball is not moving
-          if (cameraControls.isLockedBehindBall) {
-            // if (golfBall.velocity.x <= 0.001 && golfBall.velocity.z <= 0.001) {
-            if (golfBall.ballMoving()) {
-              console.log("Velocity", golfBall.velocity.x, golfBall.velocity.z);
-              console.log("Space key pressed");
+          console.log(
+            "cameraControls.getIsLockedBehindBall()",
+            cameraControls.getIsLockedBehindBall(),
+          );
+          if (cameraControls.getIsLockedBehindBall()) {
+            if (!golfBall.ballMoving()) {
               golfBall.shoot(camera);
             }
           } else {
@@ -57,7 +58,7 @@ export class InputHandler {
     });
 
     document.body.addEventListener("mousemove", (event) => {
-      if (cameraControls.isLockedBehindBall && this.isMouseDown) {
+      if (cameraControls.getIsLockedBehindBall && this.isMouseDown) {
         // Allow the user to only move the camera side to side when locked on the ball
         cameraControls.rotateCamera(event.movementX);
       }

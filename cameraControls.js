@@ -24,10 +24,22 @@ export class CameraControls {
     this.lastLockedPosition = new THREE.Vector3();
   }
 
+  enableControls() {
+    this.controls.enabled = true;
+  }
+
+  disableControls() {
+    this.controls.enabled = false;
+  }
+
+  getIsLockedBehindBall() {
+    return this.isLockedBehindBall;
+  }
+
   update() {
     if (this.isLockedBehindBall) {
       const offset = new THREE.Vector3(0, 2, 4);
-      this.cameraPosition = this.golfBall.mesh.position.clone().add(offset);
+      this.cameraPosition = this.golfBall.getPosition().add(offset);
     }
   }
 
@@ -40,7 +52,7 @@ export class CameraControls {
       this.camera.position.copy(this.lastLockedPosition);
       this.controls.enabled = false;
     }
-    this.camera.lookAt(this.golfBall.mesh.position);
+    this.camera.lookAt(this.golfBall.getPosition());
     this.isLockedBehindBall = !this.isLockedBehindBall;
     console.log(this.isLockedBehindBall);
   }
@@ -51,7 +63,7 @@ export class CameraControls {
     const directionVector = new THREE.Vector3();
     directionVector.subVectors(
       this.camera.position,
-      this.golfBall.mesh.position,
+      this.golfBall.getPosition(),
     );
 
     const rotatedDirectionVector = new THREE.Vector3();
@@ -60,14 +72,15 @@ export class CameraControls {
       .applyAxisAngle(new THREE.Vector3(0, 1, 0), rotationAngle);
 
     this.camera.position.copy(
-      rotatedDirectionVector.add(this.golfBall.mesh.position),
+      rotatedDirectionVector.add(this.golfBall.getPosition()),
     );
 
-    this.camera.lookAt(this.golfBall.mesh.position);
+    this.camera.lookAt(this.golfBall.getPosition());
   }
 
   followGolfBall() {
     this.camera.position.lerp(this.cameraPosition, 0.1);
-    this.camera.lookAt(this.golfBall.mesh.position);
+    this.camera.lookAt(this.golfBall.getPosition());
+    console.log("Position", this.golfBall.getPosition());
   }
 }

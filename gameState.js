@@ -1,9 +1,11 @@
-// gameState.js
 export class GameState {
-  constructor() {
+  constructor(golfBall) {
     this.shotsTaken = 0;
     this.currentHoleIndex = 1;
     this.holeParScores = [2, 3, 4];
+    this.holeScores = [0, 0, 0];
+    this.totalScore = 0;
+    this.golfBall = golfBall;
   }
 
   incrementShotsTaken() {
@@ -39,18 +41,17 @@ export class GameState {
     this.resetShotsTaken();
   }
 
-  // Check if the golf ball is in the hole
-  checkHole() {
-    if (
-      golfBall.collider.center.distanceTo(hole1Brush.position) < HOLE_RADIUS
-    ) {
-      console.log("Hole in one!");
-      shotsTaken = 0;
-      currentHoleIndex++;
+  getScore() {
+    return this.totalScore;
+  }
 
-      if (currentHoleIndex >= holeParScores.length) {
-        console.log("Game over!");
-      }
-    }
+  recordScore() {
+    this.holeScores[this.currentHoleIndex - 1] = this.shotsTaken;
+  }
+
+  resetGame() {
+    this.resetShotsTaken();
+    this.resetCurrentHoleIndex();
+    this.totalScore = 0;
   }
 }
