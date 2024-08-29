@@ -8,6 +8,7 @@ export class InputHandler {
     this.golfBall = golfBall;
     this.camera = camera;
     this.cameraControls = cameraControls;
+    this.isMouseDown = false;
 
     const keyStates = {};
 
@@ -24,14 +25,21 @@ export class InputHandler {
           break;
         case "Space":
           // Shoot the ball only if the camera is locked and the ball is not moving
-          if (golfBall.velocity.x <= 0.001 && golfBall.velocity.z <= 0.001) {
-            console.log("Velocity", golfBall.velocity.x, golfBall.velocity.z);
-            console.log("Space key pressed");
-            golfBall.shoot(camera);
+          if (cameraControls.isLockedBehindBall) {
+            // if (golfBall.velocity.x <= 0.001 && golfBall.velocity.z <= 0.001) {
+            if (golfBall.ballMoving()) {
+              console.log("Velocity", golfBall.velocity.x, golfBall.velocity.z);
+              console.log("Space key pressed");
+              golfBall.shoot(camera);
+            }
+          } else {
+            console.log("Attempted to shoot in free camera");
           }
+          break;
         case "KeyT":
           // Toggle camera mode
           cameraControls.toggleCameraMode();
+          break;
       }
     });
 
@@ -40,11 +48,18 @@ export class InputHandler {
       keyStates[event.code] = false;
     });
 
+    document.addEventListener("mousedown", (event) => {
+      this.isMouseDown = true;
+    });
+
+    document.addEventListener("mouseup", (event) => {
+      this.isMouseDown = false;
+    });
+
     document.body.addEventListener("mousemove", (event) => {
-      if (cameraControls.isLockedBehindBall) {
-        const rotationSpeed = 0.01;
-        const rotationAngle = -event.movementX * rotationSpeed;
-        this.cameraControls.rotateCamera(rotationAngle);
+      if (cameraControls.isLockedBehindBall && this.isMouseDown) {
+        // Allow the user to only move the camera side to side when locked on the ball
+        cameraControls.rotateCamera(event.movementX);
       }
     });
   }

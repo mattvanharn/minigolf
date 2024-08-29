@@ -6,8 +6,9 @@ export class GolfBall {
     this.position = position;
     this.radius = radius;
     this.velocity = new THREE.Vector3(0, 0, 0);
-    this.shotPower = 1;
+    this.shotPower = 10;
     this.shotDirection = new THREE.Vector3();
+    this.isShot = false;
 
     this.geometry = new THREE.SphereGeometry(this.radius, 32, 32);
     this.textureLoader = new THREE.TextureLoader();
@@ -51,8 +52,15 @@ export class GolfBall {
   }
 
   shoot(camera) {
+    this.isShot = true;
     camera.getWorldDirection(this.shotDirection);
 
     this.velocity.copy(this.shotDirection).multiplyScalar(this.shotPower);
+
+    this.shotPower = 10;
+  }
+
+  ballMoving() {
+    return this.velocity.x <= 0.001 && this.velocity.z <= 0.001;
   }
 }

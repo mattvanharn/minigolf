@@ -137,13 +137,13 @@
       const golfBall = new GolfBall(new THREE.Vector3(0, 4, 10), SPHERE_RADIUS);
       addToScene(golfBall, scene, worldOctree);
 
-      const controls = new CameraControls(camera, container, golfBall);
+      const cameraControls = new CameraControls(camera, container, golfBall);
 
       const inputHandler = new InputHandler(
         document,
         golfBall,
         camera,
-        controls,
+        cameraControls,
       );
 
       const vector1 = new THREE.Vector3();
@@ -159,22 +159,22 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
       }
 
-      function getForwardVector() {
-        camera.getWorldDirection(shotDirection);
-        shotDirection.y = 0;
-        shotDirection.normalize();
-
-        return shotDirection;
-      }
-
-      function getSideVector() {
-        camera.getWorldDirection(shotDirection);
-        shotDirection.y = 0;
-        shotDirection.normalize();
-        shotDirection.cross(camera.up);
-
-        return shotDirection;
-      }
+      // function getForwardVector() {
+      //   camera.getWorldDirection(shotDirection);
+      //   shotDirection.y = 0;
+      //   shotDirection.normalize();
+      //
+      //   return shotDirection;
+      // }
+      //
+      // function getSideVector() {
+      //   camera.getWorldDirection(shotDirection);
+      //   shotDirection.y = 0;
+      //   shotDirection.normalize();
+      //   shotDirection.cross(camera.up);
+      //
+      //   return shotDirection;
+      // }
 
       const loader = new GLTFLoader().setPath("./models/gltf/");
 
@@ -435,14 +435,22 @@
 
         for (let i = 0; i < STEPS_PER_FRAME; i++) {
           golfBall.update(deltaTime, worldOctree, GRAVITY);
+
+          if (golfBall.isShot) {
+            cameraControls.followGolfBall();
+            if (golfBall.ballMoving()) {
+              golfBall.isShot = false;
+            }
+          }
         }
 
         renderer.render(scene, camera);
 
-        // controls.update();
+        cameraControls.update();
 
         stats.update();
       }
     </script>
   </body>
 </html>
+

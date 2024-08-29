@@ -16,56 +16,58 @@ export class CameraControls {
     this.controls.maxPolarAngle = Math.PI / 2;
     this.controls.minDistance = 5;
     this.controls.maxDistance = 50;
+    this.controls.enabled = false;
 
     // Camera modes
+    this.cameraPosition = new THREE.Vector3(0, 0, 0);
     this.isLockedBehindBall = true;
-    this.freeCameraMode = false;
     this.lastLockedPosition = new THREE.Vector3();
-    this.lastLockedTarget = new THREE.Vector3();
-    this.lockedCameraDistance = 5;
-    this.lockedCameraHeight = golfBall.position.y + 1;
-  }
-
-  // Camera methods
-  toggleCameraMode() {
-    this.freeCameraMode = !this.freeCameraMode;
-    this.isLockedBehindBall = !this.freeCameraMode;
-    if (this.freeCameraMode) {
-      this.lastLockedPosition.copy(this.camera.position);
-      this.lastLockedTarget.copy(this.controls.target);
-      this.controls.enabled = true;
-      console.log("Free camera mode enabled");
-      console.log("Camera position", this.camera.position);
-      console.log("Camera target", this.controls.target);
-    } else {
-      this.camera.position.copy(this.lastLockedPosition);
-      this.camera.lookAt(this.lastLockedTarget);
-      this.controls.enabled = false;
-      console.log("Locked camera mode enabled");
-      console.log("Camera position", this.camera.position);
-      console.log("Camera target", this.controls.target);
-    }
   }
 
   update() {
     if (this.isLockedBehindBall) {
-      this.positionCameraBehindBall();
+      const offset = new THREE.Vector3(0, 2, 4);
+      this.cameraPosition = this.golfBall.mesh.position.clone().add(offset);
     }
   }
 
-  positionCameraBehindBall() {
-    const angle = this.golfBall.rotation.y;
-    const x =
-      this.golfBall.position.x - Math.sin(angle) * this.lockedCameraDistance;
-    const z =
-      this.golfBall.position.z - Math.cos(angle) * this.lockedCameraDistance;
-    const y = this.golfBall.position.y + this.lockedCameraHeight;
-
-    this.camera.position.set(x, y, z);
-    this.camera.lookAt(this.golfBall.position);
+  toggleCameraMode() {
+    if (this.isLockedBehindBall) {
+      this.lastLockedPosition.copy(this.camera.position);
+      this.controls.enabled = true;
+    }
+    if (!this.isLockedBehindBall) {
+      this.camera.position.copy(this.lastLockedPosition);
+      this.controls.enabled = false;
+    }
+    this.camera.lookAt(this.golfBall.mesh.position);
+    this.isLockedBehindBall = !this.isLockedBehindBall;
+    console.log(this.isLockedBehindBall);
   }
 
-  rotateCamera(targetRotationAngle) {
-    // Rotate the camera around the golf ball
+  rotateCamera(movementX) {
+    const rotationAngle = movementX / -500;
+
+    const directionVector = new THREE.Vector3();
+    directionVector.subVectors(
+      this.camera.position,
+      this.golfBall.mesh.position,
+    );
+
+    const rotatedDirectionVector = new THREE.Vector3();
+    rotatedDirectionVector
+      .copy(directionVector)
+      .applyAxisAngle(new THREE.Vector3(0, 1, 0), rotationAngle);
+
+    this.camera.position.copy(
+      rotatedDirectionVector.add(this.golfBall.mesh.position),
+    );
+
+    this.camera.lookAt(this.golfBall.mesh.position);
+  }
+
+  followGolfBall() {
+    this.camera.position.lerp(this.cameraPosition, 0.1);
+    this.camera.lookAt(this.golfBall.mesh.position);
   }
 }
