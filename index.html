@@ -22,6 +22,7 @@
     <div id="powerDisplay"></div>
     <!-- Game Info -->
     <div id="gameInfo"></div>
+    <!-- Score Card -->
     <div id="container"></div>
     <script type="importmap">
       {
@@ -65,6 +66,7 @@
       import { Lighting } from "./lighting.js";
       import { InputHandler } from "./inputHandler.js";
       import { GameState } from "./gameState.js";
+      import { UIManager } from "./UIManager.js";
 
       import {
         SUBTRACTION,
@@ -158,6 +160,8 @@
         camera,
         cameraControls,
       );
+
+      const uiManager = new UIManager(gameState);
 
       window.addEventListener("resize", renderer.onWindowResize);
       camera.aspect = window.innerWidth / window.innerHeight;
@@ -296,7 +300,7 @@
         new THREE.Vector3(0, 2, -10),
       );
 
-      const hole1Hole = new Hole(new THREE.Vector3(0, 4.2, -10));
+      const hole1Hole = new Hole(gameState.getHolePosition(1));
 
       let hole1Result = hole1HoleGreen.applyCSG(hole1Hole);
       addBrushToScene(hole1Result, scene, worldOctree);
@@ -325,7 +329,7 @@
         new THREE.Vector3(27.5, -0.5, -33.75),
       );
 
-      const hole2Hole = new Hole(new THREE.Vector3(27.5, 1.7, -33.75));
+      const hole2Hole = new Hole(gameState.getHolePosition(2));
 
       let hole2Result = hole2HoleGreen.applyCSG(hole2Hole);
       addBrushToScene(hole2Result, scene, worldOctree);
@@ -428,25 +432,6 @@
         `;
       }
 
-      function showVictoryScreen() {
-        const victoryScreen = document.createElement("div");
-        victoryScreen.style.position = "absolute";
-        victoryScreen.style.top = "0";
-        victoryScreen.style.left = "0";
-        victoryScreen.style.width = "100%";
-        victoryScreen.style.height = "100%";
-        victoryScreen.style.backgroundColor = "rgba(0, 0, 0, 0.5)";
-        victoryScreen.style.color = "white";
-        victoryScreen.style.display = "flex";
-        victoryScreen.style.justifyContent = "center";
-        victoryScreen.style.alignItems = "center";
-        victoryScreen.style.fontSize = "2em";
-        victoryScreen.style.zIndex = "1000";
-        victoryScreen.innerHTML = "You Win!";
-
-        document.body.appendChild(victoryScreen);
-      }
-
       function animate() {
         // Check if the ball is in the hole
         if (
@@ -455,7 +440,7 @@
             HOLE_RADIUS,
           )
         ) {
-          showVictoryScreen();
+          // showVictoryScreen();
         }
 
         updateGameDisplay();
@@ -470,6 +455,7 @@
 
           // console.log(golfBall.getIsShot());
           if (golfBall.getIsShot()) {
+            // console.log("Following golf ball");
             cameraControls.followGolfBall();
             if (!golfBall.ballMoving()) {
               // console.log("Setting shot to false");

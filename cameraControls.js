@@ -54,7 +54,6 @@ export class CameraControls {
     }
     this.camera.lookAt(this.golfBall.getPosition());
     this.isLockedBehindBall = !this.isLockedBehindBall;
-    console.log(this.isLockedBehindBall);
   }
 
   rotateCamera(movementX) {
@@ -81,6 +80,6 @@ export class CameraControls {
   followGolfBall() {
     this.camera.position.lerp(this.cameraPosition, 0.1);
     this.camera.lookAt(this.golfBall.getPosition());
-    console.log("Position", this.golfBall.getPosition());
+    // console.log("Position", this.golfBall.getPosition());
   }
 }

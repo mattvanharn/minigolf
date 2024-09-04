@@ -1,15 +1,17 @@
 // golfBall.js
 import * as THREE from "three";
+import { UIManager } from "./UIManager.js";
 
 export class GolfBall {
   constructor(position, radius, gameState) {
     this.position = position;
     this.radius = radius;
     this.velocity = new THREE.Vector3(0, 0, 0);
-    this.shotPower = 10;
+    this.shotPower = 42;
     this.shotDirection = new THREE.Vector3();
     this.isShot = false;
     this.gameState = gameState;
+    this.UIMagager = new UIManager(gameState);
 
     this.geometry = new THREE.SphereGeometry(this.radius, 32, 32);
     this.textureLoader = new THREE.TextureLoader();
@@ -88,9 +90,12 @@ export class GolfBall {
 
     camera.getWorldDirection(this.shotDirection);
 
+    // Set the Y direction to 0
+    this.shotDirection.y = 0;
+
     this.velocity.copy(this.shotDirection).multiplyScalar(this.shotPower);
 
-    this.shotPower = 10;
+    this.shotPower = 42;
   }
 
   ballMoving() {
@@ -111,7 +116,6 @@ export class GolfBall {
         let strokesBelowPar =
           this.gameState.getShotsTaken() - this.gameState.getHoleParScore();
         switch (strokesBelowPar) {
-          case strokesBelowPar:
           case -2:
             console.log("Eagle!");
             break;
@@ -135,6 +139,15 @@ export class GolfBall {
             break;
         }
       }
+
+      if (this.gameState.isLastHole()) {
+        this.UIMagager.showVictoryScreen();
+      } else {
+        this.UIMagager.showScoreCard(() => {
+          this.gameState.advanceHole();
+        });
+      }
+
       // Record the score and move to the next hole
       this.gameState.recordScore();
       this.gameState.incrementCurrentHoleIndex();

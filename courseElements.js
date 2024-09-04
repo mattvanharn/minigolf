@@ -155,3 +155,13 @@ export function addBrushToScene(brush, scene, worldOctree) {
   scene.add(brush);
   worldOctree.fromGraphNode(brush);
 }
+
+export function removeFromScene(object, scene, worldOctree) {
+  scene.remove(object.mesh);
+  worldOctree.removeGraphNode(object.mesh);
+}
+
+export function removeBrushFromScene(brush, scene, worldOctree) {
+  scene.remove(brush);
+  worldOctree.removeGraphNode(brush);
+}
