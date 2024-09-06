@@ -122,3 +122,33 @@ select {
   margin-top: 20px;
   padding: 10px;
 }
+
+#score-display {
+    position: absolute;
+    top: 100px;
+    left: 10px;
+    font-size: 18px;
+    color: green;
+    background-color: rgba(0, 0, 0, 0.5);
+    padding: 5px 10px;
+    border-radius: 5px;
+}
+
+#advance-button {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    /* transform: translateX(-50%); */
+    font-size: 18px;
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+#advance-button:hover {
+    background-color: #0056b3;
+}

@@ -1,7 +1,7 @@
 import * as THREE from "three";
 
 export class GameState {
-  constructor(golfBall) {
+  constructor() {
     this.shotsTaken = 0;
     this.currentHoleIndex = 1;
     this.holeParScores = [2, 3, 4];
@@ -12,7 +12,6 @@ export class GameState {
       new THREE.Vector3(27.5, 1.7, -33.75),
       new THREE.Vector3(0, 0, 0),
     ];
-    this.golfBall = golfBall;
   }
 
   incrementShotsTaken() {
@@ -24,6 +23,7 @@ export class GameState {
   }
 
   incrementCurrentHoleIndex() {
+    console.log("Incrementing hole index");
     this.currentHoleIndex++;
   }
 
@@ -36,6 +36,7 @@ export class GameState {
   }
 
   resetShotsTaken() {
+    console.log("Resetting shots taken");
     this.shotsTaken = 0;
   }
 
@@ -45,6 +46,7 @@ export class GameState {
 
   advanceHole() {
     console.log("Advancing hole");
+    this.recordScore();
     this.incrementCurrentHoleIndex();
     this.resetShotsTaken();
   }

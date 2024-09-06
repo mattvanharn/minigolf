@@ -1,6 +1,5 @@
 // golfBall.js
 import * as THREE from "three";
-import { UIManager } from "./UIManager.js";
 
 export class GolfBall {
   constructor(position, radius, gameState) {
@@ -11,7 +10,7 @@ export class GolfBall {
     this.shotDirection = new THREE.Vector3();
     this.isShot = false;
     this.gameState = gameState;
-    this.UIMagager = new UIManager(gameState);
+    this.uiManager = null;
 
     this.geometry = new THREE.SphereGeometry(this.radius, 32, 32);
     this.textureLoader = new THREE.TextureLoader();
@@ -31,6 +30,10 @@ export class GolfBall {
     this.mesh.position.copy(this.position);
 
     this.collider = new THREE.Sphere(this.mesh.position, this.radius);
+  }
+
+  setUIManager(uiManager) {
+    this.uiManager = uiManager;
   }
 
   getShotPower() {
@@ -140,18 +143,10 @@ export class GolfBall {
         }
       }
 
-      if (this.gameState.isLastHole()) {
-        this.UIMagager.showVictoryScreen();
-      } else {
-        this.UIMagager.showScoreCard(() => {
-          this.gameState.advanceHole();
-        });
-      }
+      console.log(this.gameState.getShotsTaken());
 
-      // Record the score and move to the next hole
-      this.gameState.recordScore();
-      this.gameState.incrementCurrentHoleIndex();
-      this.gameState.resetShotsTaken();
+      this.uiManager.updateScore(this.gameState.getShotsTaken());
+      this.uiManager.showAdvanceButton();
 
       return true;
     } else {

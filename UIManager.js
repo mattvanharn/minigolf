@@ -3,70 +3,90 @@
 export class UIManager {
   constructor(gameState) {
     this.gameState = gameState;
+    this.scoreElement = null;
+    this.advanceButton = null;
+    this.powerDisplay = null;
+    this.gameInfo = null;
+    this.golfBall = null;
+
+    this.createScoreDisplay();
+    this.createAdvanceButton();
+    this.createPowerDisplay();
+    this.createGameDisplay();
   }
 
-  showScoreCard(onAdvanceCallback) {
-    const scoreCardDiv = document.createElement("div");
-    scoreCardDiv.id = "scoreCard";
-    scoreCardDiv.style.display = "flex";
-    scoreCardDiv.style.flexDirection = "column";
-    scoreCardDiv.style.alignItems = "center";
-    scoreCardDiv.style.justifyContent = "center";
-    scoreCardDiv.style.width = "300px";
-    scoreCardDiv.style.height = "200px";
-    scoreCardDiv.style.backgroundColor = "rgba(255, 255, 255, 0.8)";
-    scoreCardDiv.style.borderRadius = "10px";
-    scoreCardDiv.style.padding = "20px";
-    scoreCardDiv.style.fontSize = "18px";
-    scoreCardDiv.style.fontWeight = "bold";
-    scoreCardDiv.style.position = "absolute";
-    scoreCardDiv.style.top = "50%";
-    scoreCardDiv.style.left = "50%";
-    scoreCardDiv.style.transform = "translate(-50%, -50%)";
-    scoreCardDiv.style.zIndex = "1000";
+  createScoreDisplay() {
+    const scoreElement = document.createElement('div');
+    scoreElement.id = 'score-display';
+    scoreElement.textContent = 'Score: 0';
+    document.body.appendChild(scoreElement);
+    this.scoreElement = scoreElement;
+  }
 
-    scoreCardDiv.innerHTML = `
-      <h2>Hole ${this.gameState.getCurrentHoleIndex()}</h2>
-      <p>Par: ${this.gameState.getHoleParScore()}</p>
-      <p>Your Score: ${this.gameState.getShotsTaken()}</p>
-      <button id="advanceButton">Advance to Hole ${this.gameState.getCurrentHoleIndex() + 1}</button>
-    `;
+  createAdvanceButton() {
+    const advanceButton = document.createElement('button');
+    advanceButton.id = 'advance-button';
+    advanceButton.textContent = 'Next Hole';
+    advanceButton.style.display = 'none';
+    document.body.appendChild(advanceButton);
+    this.advanceButton = advanceButton;
 
-    document.body.appendChild(scoreCardDiv);
-
-    const advanceButton = document.getElementById("advanceButton");
-    advanceButton.addEventListener("click", () => {
-      document.body.removeChild(scoreCardDiv);
-      onAdvanceCallback();
+    advanceButton.addEventListener('click', () => {
+      this.gameState.advanceHole();
+      this.advanceButton.style.display = 'none';
     });
   }
 
-  showVictoryScreen() {
-    const victoryScreenDiv = document.createElement("div");
-    victoryScreenDiv.id = "victory-screen";
-    victoryScreenDiv.style.display = "flex";
-    victoryScreenDiv.style.flexDirection = "column";
-    victoryScreenDiv.style.alignItems = "center";
-    victoryScreenDiv.style.justifyContent = "center";
-    victoryScreenDiv.style.width = "300px";
-    victoryScreenDiv.style.height = "200px";
-    victoryScreenDiv.style.backgroundColor = "rgba(255, 255, 255, 0.8)";
-    victoryScreenDiv.style.borderRadius = "10px";
-    victoryScreenDiv.style.padding = "20px";
-    victoryScreenDiv.style.fontSize = "18px";
-    victoryScreenDiv.style.fontWeight = "bold";
-    victoryScreenDiv.style.position = "absolute";
-    victoryScreenDiv.style.top = "50%";
-    victoryScreenDiv.style.left = "50%";
-    victoryScreenDiv.style.transform = "translate(-50%, -50%)";
-    victoryScreenDiv.style.zIndex = "1000";
+  createPowerDisplay() {
+    const powerDisplay = document.createElement('div');
+    powerDisplay.id = 'power-display';
+    powerDisplay.textContent = 'Power: 0';
+    document.body.appendChild(powerDisplay);
+    this.powerDisplay = powerDisplay;
+  }
 
-    victoryScreenDiv.innerHTML = `
-      <h2>Congratulations!</h2>
-      <p>Your final score: ${this.gameState.getTotalScore()}</p>
-      <button onclick="playAgain()">Play Again</button>
-    `;
+  createGameDisplay() {
+    const gameDisplay = document.createElement('div');
+    gameDisplay.id = 'game-display';
+    gameDisplay.innerHTML = `Hole: 1 <br />
+      Strokes: 0 <br />
+      Par: 3 <br />
+      `;
+    document.body.appendChild(gameDisplay);
+    this.gameDisplay = gameDisplay;
+  }
 
-    document.body.appendChild(victoryScreenDiv);
+  setGolfBall(golfBall) {
+    this.golfBall = golfBall;
+  }
+
+  updatePowerDisplay() {
+    this.powerDisplay.innerHTML = `Power: ${this.golfBall.getShotPower()}`;
+  }
+
+  updateGameInfo(info) {
+    this.gameInfo.textContent = info;
+  }
+
+  updateGameDisplay() {
+    const powerDisplay = document.getElementById("powerDisplay");
+    powerDisplay.innerHTML = `Power: ${this.golfBall.getShotPower().toFixed(2)}`;
+    const gameInfo = document.getElementById("gameInfo");
+    gameInfo.innerHTML = `Hole: ${this.gameState.getCurrentHoleIndex()} <br />
+      Strokes: ${this.gameState.getShotsTaken()} <br />
+      Par: ${this.gameState.getHoleParScore()} <br />
+      `;
+  }
+
+  updateScore(score) {
+    this.scoreElement.textContent = `Score: ${score}`;
+  }
+
+  showAdvanceButton() {
+    this.advanceButton.style.display = 'block';
+  }
+
+  hideAdvanceButton() {
+    this.advanceButton.style.display = 'none';
   }
 }
