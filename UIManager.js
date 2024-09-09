@@ -16,38 +16,38 @@ export class UIManager {
   }
 
   createScoreDisplay() {
-    const scoreElement = document.createElement('div');
-    scoreElement.id = 'score-display';
-    scoreElement.textContent = 'Score: 0';
+    const scoreElement = document.createElement("div");
+    scoreElement.id = "score-display";
+    scoreElement.textContent = "Score: 0";
     document.body.appendChild(scoreElement);
     this.scoreElement = scoreElement;
   }
 
   createAdvanceButton() {
-    const advanceButton = document.createElement('button');
-    advanceButton.id = 'advance-button';
-    advanceButton.textContent = 'Next Hole';
-    advanceButton.style.display = 'none';
+    const advanceButton = document.createElement("button");
+    advanceButton.id = "advance-button";
+    advanceButton.textContent = "Next Hole";
+    advanceButton.style.display = "none";
     document.body.appendChild(advanceButton);
     this.advanceButton = advanceButton;
 
-    advanceButton.addEventListener('click', () => {
+    advanceButton.addEventListener("click", () => {
       this.gameState.advanceHole();
-      this.advanceButton.style.display = 'none';
+      this.advanceButton.style.display = "none";
     });
   }
 
   createPowerDisplay() {
-    const powerDisplay = document.createElement('div');
-    powerDisplay.id = 'power-display';
-    powerDisplay.textContent = 'Power: 0';
+    const powerDisplay = document.createElement("div");
+    powerDisplay.id = "power-display";
+    powerDisplay.textContent = "Power: 0";
     document.body.appendChild(powerDisplay);
     this.powerDisplay = powerDisplay;
   }
 
   createGameDisplay() {
-    const gameDisplay = document.createElement('div');
-    gameDisplay.id = 'game-display';
+    const gameDisplay = document.createElement("div");
+    gameDisplay.id = "game-display";
     gameDisplay.innerHTML = `Hole: 1 <br />
       Strokes: 0 <br />
       Par: 3 <br />
@@ -83,10 +83,11 @@ export class UIManager {
   }
 
   showAdvanceButton() {
-    this.advanceButton.style.display = 'block';
+    this.advanceButton.style.display = "block";
   }
 
   hideAdvanceButton() {
-    this.advanceButton.style.display = 'none';
+    this.advanceButton.style.display = "none";
   }
 }
+

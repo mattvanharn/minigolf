@@ -18,10 +18,10 @@ export class InputHandler {
       switch (event.code) {
         case "KeyW":
           console.log("W key pressed");
-          golfBall.adjustShotPower(1);
+          golfBall.adjustShotPower(0.25);
           break;
         case "KeyS":
-          golfBall.adjustShotPower(-1);
+          golfBall.adjustShotPower(-0.25);
           break;
         case "Space":
           // Shoot the ball only if the camera is locked and the ball is not moving

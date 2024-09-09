@@ -10,8 +10,18 @@ export class GameState {
     this.holePositions = [
       new THREE.Vector3(0, 4.2, -10),
       new THREE.Vector3(27.5, 1.7, -33.75),
-      new THREE.Vector3(0, 0, 0),
     ];
+    this.startingPositions = [
+      new THREE.Vector3(0, 3, 10),
+      new THREE.Vector3(0, 3, -25),
+    ];
+
+    this.currentHoleComplete = false;
+    this.golfBall = null;
+  }
+
+  setGolfBall(golfBall) {
+    this.golfBall = golfBall;
   }
 
   incrementShotsTaken() {
@@ -49,6 +59,10 @@ export class GameState {
     this.recordScore();
     this.incrementCurrentHoleIndex();
     this.resetShotsTaken();
+    this.golfBall.setPosition(
+      this.startingPositions[this.currentHoleIndex - 1],
+    );
+    this.setCurrentHoleCompleted(false);
   }
 
   getScore() {
@@ -61,6 +75,14 @@ export class GameState {
 
   getHolePosition(hole) {
     return this.holePositions[hole - 1];
+  }
+
+  getCurrentHoleCompleted() {
+    return this.currentHoleComplete;
+  }
+
+  setCurrentHoleCompleted(bool) {
+    this.currentHoleComplete = bool;
   }
 
   isLastHole() {

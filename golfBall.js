@@ -9,8 +9,9 @@ export class GolfBall {
     this.shotPower = 42;
     this.shotDirection = new THREE.Vector3();
     this.isShot = false;
-    this.gameState = gameState;
+    this.gameState = null;
     this.uiManager = null;
+    this.message = null;
 
     this.geometry = new THREE.SphereGeometry(this.radius, 32, 32);
     this.textureLoader = new THREE.TextureLoader();
@@ -34,6 +35,10 @@ export class GolfBall {
 
   setUIManager(uiManager) {
     this.uiManager = uiManager;
+  }
+
+  setGameState(gameState) {
+    this.gameState = gameState;
   }
 
   getShotPower() {
@@ -62,6 +67,10 @@ export class GolfBall {
 
   setPosition(position) {
     this.mesh.position.copy(position);
+  }
+
+  getMessage() {
+    return this.message;
   }
 
   update(deltaTime, worldOctree, GRAVITY) {
@@ -114,40 +123,48 @@ export class GolfBall {
     // console.log(holePosition);
     if (this.collider.center.distanceTo(holePosition) < HOLE_RADIUS) {
       if (this.gameState.getShotsTaken() === 1) {
-        console.log("Hole in one!");
+        // console.log("Hole in one!");
+        this.message = "Hole in one!";
       } else {
         let strokesBelowPar =
           this.gameState.getShotsTaken() - this.gameState.getHoleParScore();
         switch (strokesBelowPar) {
           case -2:
-            console.log("Eagle!");
+            // console.log("Eagle!");
+            this.message = "Eagle!";
             break;
           case -1:
-            console.log("Birdie!");
+            // console.log("Birdie!");
+            this.message = "Birdie!";
             break;
           case 0:
-            console.log("Par!");
+            // console.log("Par!");
+            this.message = "Par!";
             break;
           case 1:
-            console.log("Bogey!");
+            // console.log("Bogey!");
+            this.message = "Bogey!";
             break;
           case 2:
-            console.log("Double Bogey!");
+            // console.log("Double Bogey!");
+            this.message = "Double Bogey!";
             break;
           case 3:
-            console.log("Triple Bogey!");
+            // console.log("Triple Bogey!");
+            this.message = "Triple Bogey!";
             break;
           default:
-            console.log("Over par!");
+            // console.log("Over par!");
+            this.message = "Over par!";
             break;
         }
       }
 
       console.log(this.gameState.getShotsTaken());
 
-      this.uiManager.updateScore(this.gameState.getShotsTaken());
-      this.uiManager.showAdvanceButton();
-
+      // this.uiManager.updateScore(this.gameState.getShotsTaken());
+      // this.uiManager.showAdvanceButton();
+      //
       return true;
     } else {
       return false;
