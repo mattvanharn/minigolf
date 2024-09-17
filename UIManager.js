@@ -6,6 +6,7 @@ export class UIManager {
     this.scoreElement = null;
     this.advanceButton = null;
     this.powerDisplay = null;
+    this.gameCompleteScreen = null;
     this.gameInfo = null;
     this.golfBall = null;
 
@@ -13,6 +14,7 @@ export class UIManager {
     this.createAdvanceButton();
     this.createPowerDisplay();
     this.createGameDisplay();
+    this.createGameCompleteScreen();
   }
 
   createScoreDisplay() {
@@ -89,5 +91,32 @@ export class UIManager {
   hideAdvanceButton() {
     this.advanceButton.style.display = "none";
   }
-}
 
+  createGameCompleteScreen() {
+    const gameCompleteScreen = document.createElement("div");
+    gameCompleteScreen.id = "game-complete-screen";
+    gameCompleteScreen.style.display = "none";
+    gameCompleteScreen.innerHTML = `
+      <h1>Game Complete!</h1>
+      <p>Your final score is: ${this.gameState.getScore()}</p>
+      <button id="play-again-button">Play Again</button>
+    `;
+    document.body.appendChild(gameCompleteScreen);
+    this.gameCompleteScreen = gameCompleteScreen;
+
+    const playAgainButton = document.getElementById("play-again-button");
+    playAgainButton.addEventListener("click", () => {
+      this.hideGameCompleteScreen();
+      // Call the game reset function here
+      this.gameState.resetGame();
+    });
+  }
+
+  showGameCompleteScreen() {
+    this.gameCompleteScreen.style.display = "block";
+  }
+
+  hideGameOverScreen() {
+    this.gameCompleteScreen.style.display = "none";
+  }
+}

@@ -73,6 +73,10 @@ export class GolfBall {
     return this.message;
   }
 
+  resetVelocity() {
+    this.velocity.set(0, 0, 0);
+  }
+
   update(deltaTime, worldOctree, GRAVITY) {
     this.collider.center.addScaledVector(this.velocity, deltaTime);
 

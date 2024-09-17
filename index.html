@@ -154,7 +154,7 @@
       let mouseTime = 0;
 
       // Game state initialization
-      const gameState = new GameState();
+      const gameState = new GameState(camera);
       const uiManager = new UIManager(gameState);
 
       // Golf ball initialization
@@ -167,7 +167,14 @@
       gameState.setGolfBall(golfBall);
 
       // Camera controls
-      const cameraControls = new CameraControls(camera, container, golfBall);
+      const cameraControls = new CameraControls(
+        camera,
+        container,
+        golfBall,
+        gameState,
+      );
+
+      gameState.setCameraControls(cameraControls);
 
       // Input handler
       const inputHandler = new InputHandler(
@@ -307,7 +314,7 @@
         new THREE.Vector3(0, 2, -10),
       );
 
-      const hole1Hole = new Hole(gameState.getHolePosition(1));
+      const hole1Hole = new Hole(gameState.getHolePosition(0));
 
       let hole1Result = hole1HoleGreen.applyCSG(hole1Hole);
       addBrushToScene(hole1Result, scene, worldOctree);
@@ -336,7 +343,7 @@
         new THREE.Vector3(27.5, -0.5, -33.75),
       );
 
-      const hole2Hole = new Hole(gameState.getHolePosition(2));
+      const hole2Hole = new Hole(gameState.getHolePosition(1));
 
       let hole2Result = hole2HoleGreen.applyCSG(hole2Hole);
       addBrushToScene(hole2Result, scene, worldOctree);
@@ -434,18 +441,23 @@
 
       // Animation loop
       function animate() {
-        // Check if the ball is in the hole
+        // Check if the ball is in the hole and the hole has not been completed
         if (
           golfBall.checkHole(
-            holePositions[gameState.getCurrentHoleIndex() - 1],
+            holePositions[gameState.getCurrentHoleIndex()],
             HOLE_RADIUS,
           ) &&
           !gameState.getCurrentHoleCompleted()
         ) {
-          gameState.setCurrentHoleCompleted(true);
-          uiManager.updateScore(gameState.getShotsTaken());
-          uiManager.showAdvanceButton();
-          console.log(golfBall.getMessage());
+          // Check if the player completed the final hole
+          if (gameState.isLastHole()) {
+            uiManager.showGameCompleteScreen();
+          } else {
+            gameState.setCurrentHoleCompleted(true);
+            uiManager.updateScore(gameState.getShotsTaken());
+            uiManager.showAdvanceButton();
+            console.log(golfBall.getMessage());
+          }
 
           // console.log(
           //   "Current hole position: ",

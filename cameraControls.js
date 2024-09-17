@@ -4,10 +4,11 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
 export class CameraControls {
-  constructor(camera, container, golfBall) {
+  constructor(camera, container, golfBall, gameState) {
     this.camera = camera;
     this.container = container;
     this.golfBall = golfBall;
+    this.gameState = gameState;
 
     this.controls = new OrbitControls(this.camera, this.container);
     this.controls.enableDamping = true;
@@ -78,8 +79,33 @@ export class CameraControls {
   }
 
   followGolfBall() {
+    // Get direction vector from the golf ball to the hole
+    // https://stackoverflow.com/questions/40488945/get-direction-between-two-3d-vectors-using-three-js
+    const directionVector = new THREE.Vector3();
+    directionVector
+      .subVectors(
+        this.gameState.getHolePosition(this.gameState.getCurrentHoleIndex()),
+        this.golfBall.getPosition(),
+      )
+      .normalize();
+
+    // Place the camera behind the golf ball in line with the hole, make the camera look at the hole
+    // console.log("Direction vector", directionVector);
+
+    const distanceOffset = 5;
+    const heightOffset = 2;
+    this.cameraPosition.copy(this.golfBall.getPosition());
+    this.cameraPosition.addScaledVector(directionVector, -distanceOffset);
+    this.cameraPosition.y += heightOffset;
+
     this.camera.position.lerp(this.cameraPosition, 0.1);
-    this.camera.lookAt(this.golfBall.getPosition());
-    // console.log("Position", this.golfBall.getPosition());
+    this.camera.lookAt(
+      this.gameState.getHolePosition(this.gameState.getCurrentHoleIndex()),
+    );
+
+    // this.camera.position.lerp(this.cameraPosition, 0.1);
+    // // this.camera.lookAt(this.golfBall.getPosition());
+    // this.camera.lookAt(this.gameState.getHolePosition());
+    // // console.log("Position", this.golfBall.getPosition());
   }
 }
