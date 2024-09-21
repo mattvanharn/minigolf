@@ -1,3 +1,8 @@
+* {
+  box-sizing: border-box;
+  /* border: 1px solid red; */
+}
+
 body {
   margin: 0;
   background-color: #000;
@@ -154,7 +159,7 @@ select {
 }
 
 #game-complete-screen {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   width: 100%;
@@ -163,6 +168,53 @@ select {
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-direction: column;
   z-index: 3;
+}
+
+.game-complete-container {
+  background-color: #ffffff;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  max-width: 500px;
+  width: 90%;
+  text-align: center;
+}
+
+#game-complete-screen h1 {
+  color: #007bff;
+  text-align: center;
+}
+
+#total-score {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+
+#hole-scores {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+#hole-scores p {
+  margin: 5px 0;
+}
+
+#play-again-button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 5px;
+  width: 100%;
+  transition: background-color 0.3s ease;
+  display: block;
+}
+
+#play-again-button:hover {
+  background-color: #0056b3;
 }

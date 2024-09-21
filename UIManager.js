@@ -74,7 +74,7 @@ export class UIManager {
     const powerDisplay = document.getElementById("powerDisplay");
     powerDisplay.innerHTML = `Power: ${this.golfBall.getShotPower().toFixed(2)}`;
     const gameInfo = document.getElementById("gameInfo");
-    gameInfo.innerHTML = `Hole: ${this.gameState.getCurrentHoleIndex()} <br />
+    gameInfo.innerHTML = `Hole: ${this.gameState.getCurrentHoleIndex() + 1} <br />
       Strokes: ${this.gameState.getShotsTaken()} <br />
       Par: ${this.gameState.getHoleParScore()} <br />
       `;
@@ -93,30 +93,49 @@ export class UIManager {
   }
 
   createGameCompleteScreen() {
-    const gameCompleteScreen = document.createElement("div");
-    gameCompleteScreen.id = "game-complete-screen";
-    gameCompleteScreen.style.display = "none";
-    gameCompleteScreen.innerHTML = `
-      <h1>Game Complete!</h1>
-      <p>Your final score is: ${this.gameState.getScore()}</p>
-      <button id="play-again-button">Play Again</button>
-    `;
-    document.body.appendChild(gameCompleteScreen);
-    this.gameCompleteScreen = gameCompleteScreen;
-
-    const playAgainButton = document.getElementById("play-again-button");
-    playAgainButton.addEventListener("click", () => {
-      this.hideGameCompleteScreen();
-      // Call the game reset function here
-      this.gameState.resetGame();
-    });
+    this.gameCompleteScreen = document.createElement("div");
+    this.gameCompleteScreen.id = "game-complete-screen";
+    this.gameCompleteScreen.style.display = "none";
+    document.body.appendChild(this.gameCompleteScreen);
   }
 
   showGameCompleteScreen() {
+    this.gameState.recordScore();
+
+    // Clear existing content
+    this.gameCompleteScreen.innerHTML = '';
+
+    // Create new content
+    this.gameCompleteScreen.innerHTML = `
+    <h1>Game Complete!</h1>
+    <p>Your final score is: ${this.gameState.getScore()}</p>
+    <div id="hole-scores"></div>
+    <button id="play-again-button">Play Again</button>
+  `;
+
+    // Add hole scores
+    const holeScoresElement = this.gameCompleteScreen.querySelector("#hole-scores");
+    for (let i = 0; i < this.gameState.holeScores.length; i++) {
+      const holeScore = this.gameState.holeScores[i];
+      const holePar = this.gameState.holeParScores[i];
+      const scoreText = `Hole ${i + 1}: ${holeScore} (Par ${holePar})`;
+      const scoreElement = document.createElement("p");
+      scoreElement.textContent = scoreText;
+      holeScoresElement.appendChild(scoreElement);
+    }
+
+    // Add event listener to play again button
+    const playAgainButton = this.gameCompleteScreen.querySelector("#play-again-button");
+    playAgainButton.addEventListener("click", () => {
+      console.log("Play again clicked");
+      this.hideGameCompleteScreen();
+      this.gameState.resetGame();
+    });
+
     this.gameCompleteScreen.style.display = "block";
   }
 
-  hideGameOverScreen() {
+  hideGameCompleteScreen() {
     this.gameCompleteScreen.style.display = "none";
   }
 }

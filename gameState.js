@@ -4,16 +4,18 @@ export class GameState {
   constructor(camera) {
     this.shotsTaken = 0;
     this.currentHoleIndex = 0;
-    this.holeParScores = [2, 3];
-    this.holeScores = [0, 0];
+    this.holeParScores = [2, 3, 4];
+    this.holeScores = [0, 0, 0];
     this.totalScore = 0;
     this.holePositions = [
       new THREE.Vector3(0, 4.2, -10),
       new THREE.Vector3(27.5, 1.7, -33.75),
+      new THREE.Vector3(15, 2.2, 7.5),
     ];
     this.startingPositions = [
       new THREE.Vector3(0, 3, 10),
       new THREE.Vector3(0, 3, -25),
+      new THREE.Vector3(40, 3, -27.5),
     ];
     this.currentHoleComplete = false;
     this.camera = camera;
@@ -50,6 +52,10 @@ export class GameState {
     return this.holeParScores[this.currentHoleIndex];
   }
 
+  getHoleScores() {
+    return this.holeScores;
+  }
+
   resetShotsTaken() {
     console.log("Resetting shots taken");
     this.shotsTaken = 0;
@@ -60,8 +66,8 @@ export class GameState {
   }
 
   advanceHole() {
-    console.log("Before: ", this.cameraControls.cameraPosition);
-    console.log("Advancing hole");
+    // console.log("Before: ", this.cameraControls.cameraPosition);
+    // console.log("Advancing hole");
     // Record Score
     this.recordScore();
 
@@ -83,10 +89,12 @@ export class GameState {
       .add(new THREE.Vector3(0, 2, 4));
     this.camera.position.copy(this.cameraControls.cameraPosition);
 
-    console.log("After: ", this.cameraControls.cameraPosition);
+    // console.log("After: ", this.cameraControls.cameraPosition);
 
     // Set Current Hole Completed to False
     this.setCurrentHoleCompleted(false);
+
+    console.log("Hole Scores: ", this.holeScores);
   }
 
   getScore() {
@@ -98,6 +106,8 @@ export class GameState {
   }
 
   getHolePosition(holeIndex) {
+    // console.log("Hole Index: ", holeIndex);
+    // console.log("Hole Positions: ", this.holePositions);
     return this.holePositions[holeIndex];
   }
 
@@ -116,12 +126,16 @@ export class GameState {
     //   "Last Hole: ",
     //   this.currentHoleIndex === this.holeParScores.length - 1,
     // );
-    return this.currentHoleIndex === this.holeParScores.length - 2;
+    return this.currentHoleIndex === this.holeParScores.length - 1;
   }
 
   resetGame() {
+    // Reset Hole Scores
     this.resetShotsTaken();
     this.resetCurrentHoleIndex();
     this.totalScore = 0;
+
+    // Reset Golf Ball Position to First Hole
+    this.golfBall.setPosition(this.startingPositions[0]);
   }
 }
