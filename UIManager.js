@@ -107,22 +107,38 @@ export class UIManager {
 
     // Create new content
     this.gameCompleteScreen.innerHTML = `
-    <h1>Game Complete!</h1>
-    <p>Your final score is: ${this.gameState.getScore()}</p>
-    <div id="hole-scores"></div>
-    <button id="play-again-button">Play Again</button>
-  `;
-
-    // Add hole scores
-    const holeScoresElement = this.gameCompleteScreen.querySelector("#hole-scores");
-    for (let i = 0; i < this.gameState.holeScores.length; i++) {
-      const holeScore = this.gameState.holeScores[i];
-      const holePar = this.gameState.holeParScores[i];
-      const scoreText = `Hole ${i + 1}: ${holeScore} (Par ${holePar})`;
-      const scoreElement = document.createElement("p");
-      scoreElement.textContent = scoreText;
-      holeScoresElement.appendChild(scoreElement);
-    }
+      <div id="game-complete-container">
+        <h1>Game Complete!</h1>
+        <div id="hole-scores-container">
+          <table id="hole-scores">
+            <thead>
+              <tr id="holes">
+                <th>Hole</th>
+                <th>1</th>
+                <th>2</th>
+                <th>3</th>
+                <th></th>
+              </tr>
+              <tr id="pars">
+                <th>Par</th>
+                  <td>${this.gameState.holeParScores[0]}</td>
+                  <td>${this.gameState.holeParScores[1]}</td>
+                  <td>${this.gameState.holeParScores[2]}</td>
+                  <td>Total</td>
+              </tr>
+              <tr>
+                <th id="scores">Score</th>
+                  <td>${this.gameState.holeScores[0]}</td>
+                  <td>${this.gameState.holeScores[1]}</td>
+                  <td>${this.gameState.holeScores[2]}</td>
+                  <td>${this.gameState.getScore()}</td>
+              </tr>
+            </thead>
+          </table>
+        </div>
+        <button id="play-again-button">Play Again</button>
+      </div>
+    `;
 
     // Add event listener to play again button
     const playAgainButton = this.gameCompleteScreen.querySelector("#play-again-button");
