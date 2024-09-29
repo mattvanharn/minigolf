@@ -1,13 +1,11 @@
 // courseElements.js
 
 import * as THREE from "three";
-import {
-  SUBTRACTION,
-  INTERSECTION,
-  ADDITION,
-  Brush,
-  Evaluator,
-} from "three-bvh-csg";
+
+// Texture loading
+// https://threejs.org/docs/index.html#api/en/loaders/TextureLoader
+
+import { SUBTRACTION, Brush, Evaluator } from "three-bvh-csg";
 
 // Create the CourseElement parent class
 export class CourseElement {
@@ -69,8 +67,16 @@ export class Green extends CourseElement {
     rotation = new THREE.Euler(),
     extrudeSettings = null,
   ) {
+    const greenTextureLoader = new THREE.TextureLoader();
+    const greenTexture = greenTextureLoader.load("./textures/grass2.jpg");
+
+    // https://github.com/mrdoob/three.js/blob/master/examples/webgl_materials_texture_anisotropy.html
+    greenTexture.wrapS = greenTexture.wrapT = THREE.RepeatWrapping;
+    // greenTexture.repeat.set(3, 3);
+
     const material = new THREE.MeshLambertMaterial({
       color: 0x00ff00,
+      map: greenTexture,
       flatShading: true,
       polygonOffset: true,
       polygonOffsetUnits: 1,
@@ -97,12 +103,21 @@ export class Green extends CourseElement {
 export class Hole extends CourseElement {
   constructor(position, rotation = new THREE.Euler()) {
     const geometry = new THREE.CylinderGeometry(0.4, 0.4, 0.8, 32);
-    const material = new THREE.MeshLambertMaterial({
+    // const material = new THREE.MeshLambertMaterial({
+    //   color: 0xeeeeee,
+    //   // flatShading: true,
+    //   polygonOffset: true,
+    //   polygonOffsetUnits: 1,
+    //   polygonOffsetFactor: 1,
+    // });
+    const material = new THREE.MeshStandardMaterial({
       color: 0xeeeeee,
       // flatShading: true,
-      polygonOffset: true,
-      polygonOffsetUnits: 1,
-      polygonOffsetFactor: 1,
+      // polygonOffset: true,
+      // polygonOffsetUnits: 1,
+      // polygonOffsetFactor: 1,
+      roughness: 0.5,
+      metalness: 0,
     });
 
     super(geometry, material, position, rotation);
@@ -118,12 +133,21 @@ export class Bumper extends CourseElement {
     rotation = new THREE.Euler(),
     extrudeSettings = null,
   ) {
-    const material = new THREE.MeshLambertMaterial({
+    // const material = new THREE.MeshLambertMaterial({
+    //   color: "red",
+    //   flatShading: true,
+    //   polygonOffset: true,
+    //   polygonOffsetUnits: 1,
+    //   polygonOffsetFactor: 1,
+    // });
+    const material = new THREE.MeshStandardMaterial({
       color: "red",
-      flatShading: true,
-      polygonOffset: true,
-      polygonOffsetUnits: 1,
-      polygonOffsetFactor: 1,
+      // flatShading: true,
+      // polygonOffset: true,
+      // polygonOffsetUnits: 1,
+      // polygonOffsetFactor: 1,
+      roughness: 0.5,
+      metalness: 1,
     });
 
     // If extrude is not null, extrude the geometry

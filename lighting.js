@@ -6,23 +6,44 @@ export class Lighting {
   constructor(scene) {
     this.scene = scene;
 
-    const fillLight1 = new THREE.HemisphereLight(0x8dc1de, 0x00668d, 1.5);
-    fillLight1.position.set(2, 1, 1);
-    scene.add(fillLight1);
+    const ambientLight = new THREE.AmbientLight(0x404040, 1);
+    scene.add(ambientLight);
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 2.5);
-    directionalLight.position.set(-5, 25, -1);
-    directionalLight.castShadow = true;
-    directionalLight.shadow.camera.near = 0.01;
-    directionalLight.shadow.camera.far = 1000;
-    directionalLight.shadow.camera.right = 100;
-    directionalLight.shadow.camera.left = -100;
-    directionalLight.shadow.camera.top = 30;
-    directionalLight.shadow.camera.bottom = -30;
-    directionalLight.shadow.mapSize.width = 1024;
-    directionalLight.shadow.mapSize.height = 1024;
-    directionalLight.shadow.radius = 4;
-    directionalLight.shadow.bias = -0.00006;
-    scene.add(directionalLight);
+    // LIGHTS
+
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0xffffff, 2);
+    hemiLight.color.setHSL(0.6, 1, 0.6);
+    hemiLight.groundColor.setHSL(0.095, 1, 0.75);
+    hemiLight.position.set(0, 50, 0);
+    scene.add(hemiLight);
+
+    const hemiLightHelper = new THREE.HemisphereLightHelper(hemiLight, 10);
+    scene.add(hemiLightHelper);
+
+    //
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 3);
+    dirLight.color.setHSL(0.1, 1, 0.95);
+    dirLight.position.set(1, 1.75, -1);
+    dirLight.position.multiplyScalar(30);
+    scene.add(dirLight);
+
+    dirLight.castShadow = true;
+
+    dirLight.shadow.mapSize.width = 2048;
+    dirLight.shadow.mapSize.height = 2048;
+
+    const d = 50;
+
+    dirLight.shadow.camera.left = -d;
+    dirLight.shadow.camera.right = d;
+    dirLight.shadow.camera.top = d;
+    dirLight.shadow.camera.bottom = -d;
+
+    dirLight.shadow.camera.far = 3500;
+    dirLight.shadow.bias = -0.0001;
+
+    const dirLightHelper = new THREE.DirectionalLightHelper(dirLight, 10);
+    scene.add(dirLightHelper);
   }
 }

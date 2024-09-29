@@ -1,29 +1,33 @@
 <!doctype html>
 <html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>three.js - misc - octree collisions</title>
+    <!-- Viewport settings -->
+    <meta
+      name="viewport"
+      content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0"
+    />
+    <!-- Stylesheet -->
+    <link type="text/css" rel="stylesheet" href="main.css" />
+  </head>
 
-<head>
-  <meta charset="utf-8" />
-  <title>three.js - misc - octree collisions</title>
-  <!-- Viewport settings -->
-  <meta name="viewport"
-    content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
-  <!-- Stylesheet -->
-  <link type="text/css" rel="stylesheet" href="main.css" />
-</head>
-
-<body>
-  <!-- Game Instructions -->
-  <div id="info"> Minigolf Three.js Project<br /> W and S - Adjust shot
-    power<br /> T - Toggle camera view<br /> Space - Hit the ball<br />
-  </div>
-  <!-- Power Display -->
-  <div id="powerDisplay"></div>
-  <!-- Game Info -->
-  <div id="gameInfo"></div>
-  <!-- Score Card -->
-  <div id="container"></div>
-  <!-- Import Map -->
-  <script type="importmap">
+  <body>
+    <!-- Game Instructions -->
+    <div id="info">
+      Minigolf Three.js Project<br />
+      W and S - Adjust shot power<br />
+      T - Toggle camera view<br />
+      Space - Hit the ball<br />
+    </div>
+    <!-- Power Display -->
+    <div id="powerDisplay"></div>
+    <!-- Game Info -->
+    <div id="gameInfo"></div>
+    <!-- Score Card -->
+    <div id="container"></div>
+    <!-- Import Map -->
+    <script type="importmap">
       {
         "imports": {
           "three": "https://cdn.jsdelivr.net/npm/three@v0.165.0/build/three.module.js",
@@ -33,595 +37,653 @@
         }
       }
     </script>
-  <!-- Main Script -->
-  <script type="module">
-    // Imports
-    import * as THREE from "three";
+    <!-- Main Script -->
+    <script type="module">
+      // Imports
+      import * as THREE from "three";
 
-    import Stats from "three/addons/libs/stats.module.js";
-    import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-    import { HDRCubeTextureLoader } from "three/addons/loaders/HDRCubeTextureLoader.js";
-    import { FlakesTexture } from "three/addons/textures/FlakesTexture.js";
-    import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-    import { Octree } from "three/addons/math/Octree.js";
-    import { OctreeHelper } from "three/addons/helpers/OctreeHelper.js";
-    import { Capsule } from "three/addons/math/Capsule.js";
+      import Stats from "three/addons/libs/stats.module.js";
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+      import { HDRCubeTextureLoader } from "three/addons/loaders/HDRCubeTextureLoader.js";
+      import { FlakesTexture } from "three/addons/textures/FlakesTexture.js";
+      import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+      import { Octree } from "three/addons/math/Octree.js";
+      import { OctreeHelper } from "three/addons/helpers/OctreeHelper.js";
+      import { Capsule } from "three/addons/math/Capsule.js";
+      import { Sky } from "three/addons/objects/Sky.js";
 
-    import { GUI } from "three/addons/libs/lil-gui.module.min.js";
+      import { GUI } from "three/addons/libs/lil-gui.module.min.js";
 
-    // Custom imports
-    import { GolfBall } from "./golfBall.js";
-    import {
-      Green,
-      Hole,
-      Bumper,
-      addToScene,
-      addBrushToScene,
-    } from "./courseElements.js";
-    import { Renderer } from "./renderer.js";
-    import { CameraControls } from "./cameraControls.js";
-    import { Lighting } from "./lighting.js";
-    import { InputHandler } from "./inputHandler.js";
-    import { GameState } from "./gameState.js";
-    import { UIManager } from "./UIManager.js";
+      // Custom imports
+      import { Grass } from "./grass.js";
+      import { GolfBall } from "./golfBall.js";
+      import {
+        Green,
+        Hole,
+        Bumper,
+        addToScene,
+        addBrushToScene,
+      } from "./courseElements.js";
+      import { Renderer } from "./renderer.js";
+      import { CameraControls } from "./cameraControls.js";
+      import { Lighting } from "./lighting.js";
+      import { InputHandler } from "./inputHandler.js";
+      import { GameState } from "./gameState.js";
+      import { UIManager } from "./UIManager.js";
 
-    // CSG imports
-    import {
-      SUBTRACTION,
-      INTERSECTION,
-      ADDITION,
-      Brush,
-      Evaluator,
-    } from "three-bvh-csg";
+      // CSG imports
+      import {
+        SUBTRACTION,
+        INTERSECTION,
+        ADDITION,
+        Brush,
+        Evaluator,
+      } from "three-bvh-csg";
 
-    // Constants and Variables
-    const params = {
-      operation: SUBTRACTION,
-      useGroups: true,
-      wireframe: false,
-    };
+      // Constants and Variables
+      const params = {
+        operation: SUBTRACTION,
+        useGroups: true,
+        wireframe: false,
+      };
 
-    const clock = new THREE.Clock();
+      const clock = new THREE.Clock();
 
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x88ccee);
-    scene.fog = new THREE.Fog(0x88ccee, 0, 50);
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x88ccee);
+      // scene.fog = new THREE.Fog(0x88ccee, 0, 50);
 
-    const container = document.getElementById("container");
+      const container = document.getElementById("container");
 
-    const camera = new THREE.PerspectiveCamera(
-      70,
-      window.innerWidth / window.innerHeight,
-      0.1,
-      1000,
-    );
-    camera.rotation.order = "YXZ";
+      const camera = new THREE.PerspectiveCamera(
+        70,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000,
+      );
+      camera.rotation.order = "YXZ";
 
-    const lighting = new Lighting(scene);
+      const lighting = new Lighting(scene);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setAnimationLoop(animate);
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.VSMShadowMap;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    container.appendChild(renderer.domElement);
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setPixelRatio(window.devicePixelRatio);
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setAnimationLoop(animate);
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.VSMShadowMap;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      container.appendChild(renderer.domElement);
 
-    // Camera initial position
-    camera.position.set(0, 5, 15);
+      // Camera initial position
+      camera.position.set(0, 5, 15);
 
-    const stats = new Stats();
-    stats.domElement.style.position = "absolute";
-    stats.domElement.style.top = "0px";
-    container.appendChild(stats.domElement);
+      const stats = new Stats();
+      stats.domElement.style.position = "absolute";
+      stats.domElement.style.top = "0px";
+      container.appendChild(stats.domElement);
 
-    // Constants
-    const GRAVITY = 30;
-    const NUM_SPHERES = 1;
-    const SPHERE_RADIUS = 0.2;
+      // Constants
+      const GRAVITY = 30;
+      const NUM_SPHERES = 1;
+      const SPHERE_RADIUS = 0.2;
 
-    // Green dimensions
-    const GREEN_1_WIDTH = 5;
-    const GREEN_1_LENGTH = 25;
-    const GREEN_1_DEPTH = 5;
+      // Green dimensions
+      const GREEN_1_WIDTH = 5;
+      const GREEN_1_LENGTH = 25;
+      const GREEN_1_DEPTH = 5;
 
-    const GREEN_2_WIDTH = 5;
-    const GREEN_2_LENGTH = 25;
-    const GREEN_2_DEPTH = 5;
+      const GREEN_2_WIDTH = 5;
+      const GREEN_2_LENGTH = 25;
+      const GREEN_2_DEPTH = 5;
 
-    const GREEN_3_WIDTH = 5;
-    const GREEN_3_LENGTH = 10;
-    const GREEN_3_DEPTH = 5;
+      const GREEN_3_WIDTH = 5;
+      const GREEN_3_LENGTH = 10;
+      const GREEN_3_DEPTH = 5;
 
-    // Hole dimensions
-    const HOLE_RADIUS = SPHERE_RADIUS * 2;
-    const HOLE_DEPTH = SPHERE_RADIUS * 4;
-    const HOLE_SEGMENTS = 32;
+      // Hole dimensions
+      const HOLE_RADIUS = SPHERE_RADIUS * 2;
+      const HOLE_DEPTH = SPHERE_RADIUS * 4;
+      const HOLE_SEGMENTS = 32;
 
-    const STEPS_PER_FRAME = 5;
+      const STEPS_PER_FRAME = 5;
 
-    // Octree setup
-    const worldOctree = new Octree();
+      // Octree setup
+      const worldOctree = new Octree();
 
-    let mouseTime = 0;
+      let mouseTime = 0;
 
-    // Game state initialization
-    const gameState = new GameState(camera);
-    const uiManager = new UIManager(gameState);
+      // Game state initialization
+      const gameState = new GameState(camera);
+      const uiManager = new UIManager(gameState);
 
-    // Golf ball initialization
-    const golfBall = new GolfBall(new THREE.Vector3(0, 4, 10), SPHERE_RADIUS);
-    addToScene(golfBall, scene, worldOctree);
+      // Golf ball initialization
+      const golfBall = new GolfBall(new THREE.Vector3(0, 4, 10), SPHERE_RADIUS);
+      addToScene(golfBall, scene, worldOctree);
 
-    golfBall.setUIManager(uiManager);
-    golfBall.setGameState(gameState);
-    uiManager.setGolfBall(golfBall);
-    gameState.setGolfBall(golfBall);
+      golfBall.setUIManager(uiManager);
+      golfBall.setGameState(gameState);
+      uiManager.setGolfBall(golfBall);
+      gameState.setGolfBall(golfBall);
 
-    // Camera controls
-    const cameraControls = new CameraControls(
-      camera,
-      container,
-      golfBall,
-      gameState,
-    );
+      // Camera controls
+      const cameraControls = new CameraControls(
+        camera,
+        container,
+        golfBall,
+        gameState,
+      );
 
-    gameState.setCameraControls(cameraControls);
+      gameState.setCameraControls(cameraControls);
 
-    // Input handler
-    const inputHandler = new InputHandler(
-      document,
-      golfBall,
-      camera,
-      cameraControls,
-    );
+      // Input handler
+      const inputHandler = new InputHandler(
+        document,
+        golfBall,
+        camera,
+        cameraControls,
+      );
 
-    // Window resize event listener
-    window.addEventListener("resize", renderer.onWindowResize);
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
+      // Window resize event listener
+      window.addEventListener("resize", renderer.onWindowResize);
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
 
-    // Load GLTF model
-    const loader = new GLTFLoader().setPath("./models/gltf/");
-    let model = "bridge.glb";
+      // Load GLTF model
+      const loader = new GLTFLoader().setPath("./models/gltf/");
+      let model = "bridge.glb";
 
-    // Load and setup the mini golf course
-    loader.load(model, (gltf) => {
-      gltf.scene.scale.setScalar(.8);
-      gltf.scene.position.set(29.75, 2.3, -7.5);
+      // Load and setup the mini golf course
+      loader.load(model, (gltf) => {
+        gltf.scene.scale.setScalar(0.8);
+        gltf.scene.position.set(29.75, 2.3, -7.5);
 
-      // Setup materials and shadows
-      gltf.scene.traverse((child) => {
-        if (child.isMesh) {
-          child.castShadow = true;
-          child.receiveShadow = true;
+        // Setup materials and shadows
+        gltf.scene.traverse((child) => {
+          if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
 
-          if (child.material.map) {
-            child.material.map.anisotropy = 4;
+            if (child.material.map) {
+              child.material.map.anisotropy = 4;
+            }
           }
-        }
+        });
+
+        scene.add(gltf.scene);
+        worldOctree.fromGraphNode(gltf.scene);
+
+        // Octree helper
+        const helper = new OctreeHelper(worldOctree);
+        helper.visible = false;
+        scene.add(helper);
+
+        // GUI setup
+        const gui = new GUI({ width: 200 });
+        gui.add({ debug: false }, "debug").onChange(function (value) {
+          helper.visible = value;
+        });
       });
 
-      scene.add(gltf.scene);
-      worldOctree.fromGraphNode(gltf.scene);
+      // Skybox
+      // https://threejs.org/docs/index.html?q=sky#examples/en/objects/Sky
+      // https://github.com/mrdoob/three.js/blob/master/examples/webgl_shaders_sky.html
+      function initSky() {
+        // Add Sky
+        const sky = new Sky();
+        sky.scale.setScalar(450000);
+        scene.add(sky);
 
-      // Octree helper
-      const helper = new OctreeHelper(worldOctree);
-      helper.visible = false;
-      scene.add(helper);
+        const sun = new THREE.Vector3();
 
-      // GUI setup
-      const gui = new GUI({ width: 200 });
-      gui.add({ debug: false }, "debug").onChange(function (value) {
-        helper.visible = value;
-      });
-    });
+        const uniforms = sky.material.uniforms;
 
-    // Create the ground
-    // Ground geometry
-    const groundGeometry = new THREE.PlaneGeometry(100, 100, 100, 100);
+        uniforms["turbidity"].value = 10;
+        uniforms["rayleigh"].value = 3;
+        uniforms["mieCoefficient"].value = 0.005;
+        uniforms["mieDirectionalG"].value = 0.7;
 
-    // Ground material
-    const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x3f4d1b });
+        const phi = THREE.MathUtils.degToRad(90 - 10);
+        const theta = THREE.MathUtils.degToRad(155);
 
-    // Create ground mesh
-    const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-    ground.rotation.x = -Math.PI / 2;
-    ground.castShadow = true;
-    ground.receiveShadow = true;
-    scene.add(ground);
-    worldOctree.fromGraphNode(ground);
+        sun.setFromSphericalCoords(1, phi, theta);
 
-    // Create Green1
-    const hole1Green = new Green(
-      new THREE.BoxGeometry(GREEN_1_WIDTH, GREEN_1_DEPTH, GREEN_1_LENGTH),
-      new THREE.Vector3(0, 0, 0),
-    );
-    addToScene(hole1Green, scene, worldOctree);
+        uniforms["sunPosition"].value.copy(sun);
 
-    // Create Green1Ramp
-    const hole1Ramp = new Green(
-      new THREE.Shape()
-        .moveTo(0, 0, -GREEN_1_LENGTH / 2)
-        .lineTo(4, 0, GREEN_1_LENGTH / 2)
-        .lineTo(4, 2, GREEN_1_LENGTH / 2)
-        .lineTo(0, 0, -GREEN_1_LENGTH / 2),
-      new THREE.Vector3(-GREEN_1_WIDTH / 2, 2.5, -3.5),
-      new THREE.Euler(0, Math.PI / 2, 0),
-      { steps: 2, depth: GREEN_1_WIDTH, bevelEnabled: false },
-    );
-    addToScene(hole1Ramp, scene, worldOctree);
-
-    // Create Hole1 Bumpers
-    const hole1BumperFront = new Bumper(
-      new THREE.BoxGeometry(GREEN_1_WIDTH + 1, GREEN_1_DEPTH + 4, 0.5),
-      new THREE.Vector3(0, 1, -GREEN_1_LENGTH / 2 - 0.25),
-    );
-    addToScene(hole1BumperFront, scene, worldOctree);
-
-    const hole1BumperBack = new Bumper(
-      new THREE.BoxGeometry(GREEN_1_WIDTH + 1, GREEN_1_DEPTH + 1, 0.5),
-      new THREE.Vector3(0, 0, GREEN_1_LENGTH / 2 + 0.25),
-    );
-    addToScene(hole1BumperBack, scene, worldOctree);
-
-    const hole1BumperLeft = new Bumper(
-      new THREE.BoxGeometry(0.5, GREEN_1_DEPTH + 1, GREEN_1_LENGTH + 1),
-      new THREE.Vector3(-GREEN_1_WIDTH / 2 - 0.25, 0, 0),
-    );
-    addToScene(hole1BumperLeft, scene, worldOctree);
-
-    const hole1BumperRight = new Bumper(
-      new THREE.BoxGeometry(0.5, GREEN_1_DEPTH + 1, GREEN_1_LENGTH + 1),
-      new THREE.Vector3(GREEN_1_WIDTH / 2 + 0.25, 0, 0),
-    );
-    addToScene(hole1BumperRight, scene, worldOctree);
-
-    const hole1BumperLeftRamp = new Bumper(
-      new THREE.Shape()
-        .moveTo(0, 0, 0.5)
-        .lineTo(4.5, 2.5, 0.5)
-        .lineTo(4.5 + GREEN_1_WIDTH, 2.5, 0.5)
-        .lineTo(4.5 + GREEN_1_WIDTH, 0, 0.5)
-        .lineTo(0, 0, 0.5),
-      new THREE.Vector3(-GREEN_1_WIDTH / 2 - 0.5, 3, -3.5),
-      new THREE.Euler(0, Math.PI / 2, 0),
-      { steps: 2, depth: 0.5, bevelEnabled: false },
-    );
-    addToScene(hole1BumperLeftRamp, scene, worldOctree);
-
-    const hole1BumperRightRamp = new Bumper(
-      new THREE.Shape()
-        .moveTo(0, 0, -0.5)
-        .lineTo(4.5, 2.5, -0.5)
-        .lineTo(4.5 + GREEN_1_WIDTH, 2.5, -0.5)
-        .lineTo(4.5 + GREEN_1_WIDTH, 0, -0.5)
-        .lineTo(0, 0, -0.5),
-      new THREE.Vector3(GREEN_1_WIDTH / 2, 3, -3.5),
-      new THREE.Euler(0, Math.PI / 2, 0),
-      { steps: 2, depth: 0.5, bevelEnabled: false },
-    );
-    addToScene(hole1BumperRightRamp, scene, worldOctree);
-
-    // Create Hole1
-    const hole1HoleGreen = new Green(
-      new THREE.BoxGeometry(GREEN_1_WIDTH, GREEN_1_DEPTH, GREEN_1_WIDTH),
-      new THREE.Vector3(0, 2, -10),
-    );
-
-    const hole1Hole = new Hole(gameState.getHolePosition(0));
-
-    let hole1Result = hole1HoleGreen.applyCSG(hole1Hole);
-    addBrushToScene(hole1Result, scene, worldOctree);
-
-    // Create Green2
-    const hole2Green1 = new Green(
-      new THREE.BoxGeometry(GREEN_2_WIDTH, GREEN_2_DEPTH, GREEN_2_LENGTH / 2),
-      new THREE.Vector3(0, 0, -30),
-    );
-    addToScene(hole2Green1, scene, worldOctree);
-
-    const hole2Green2 = new Green(
-      new THREE.BoxGeometry(GREEN_2_WIDTH, GREEN_2_DEPTH, GREEN_2_LENGTH),
-      new THREE.Vector3(GREEN_2_WIDTH + 5, 0, -33.75),
-      new THREE.Euler(0, Math.PI / 2, 0),
-    );
-    addToScene(hole2Green2, scene, worldOctree);
-
-    const hole2HoleGreen = new Green(
-      new THREE.CylinderGeometry(
-        GREEN_2_WIDTH,
-        GREEN_2_WIDTH,
-        GREEN_2_DEPTH,
-        32,
-      ),
-      new THREE.Vector3(27.5, -0.5, -33.75),
-    );
-
-    const hole2Hole = new Hole(gameState.getHolePosition(1));
-
-    let hole2Result = hole2HoleGreen.applyCSG(hole2Hole);
-    addBrushToScene(hole2Result, scene, worldOctree);
-
-    // Create Hole2 Bumpers
-    const hole2BumperRear = new Bumper(
-      new THREE.BoxGeometry(0.5, GREEN_2_DEPTH + 1, GREEN_2_WIDTH + 1),
-      new THREE.Vector3(0, 0, -28.5 + GREEN_2_WIDTH),
-      new THREE.Euler(0, Math.PI / 2, 0),
-    );
-    addToScene(hole2BumperRear, scene, worldOctree);
-
-    const hole2BumperFrontLeft = new Bumper(
-      new THREE.BoxGeometry(0.5, GREEN_2_DEPTH + 1, GREEN_2_LENGTH + 1),
-      new THREE.Vector3(10, 0, -31.5 - GREEN_2_WIDTH),
-      new THREE.Euler(0, Math.PI / 2, 0),
-    );
-    addToScene(hole2BumperFrontLeft, scene, worldOctree);
-
-    const hole2BumperFrontRight = new Bumper(
-      new THREE.BoxGeometry(
-        0.5,
-        GREEN_2_DEPTH + 1,
-        GREEN_2_LENGTH - GREEN_2_WIDTH + 0.5,
-      ),
-      new THREE.Vector3(10.25 + GREEN_2_WIDTH / 2, 0, -31),
-      new THREE.Euler(0, Math.PI / 2, 0),
-    );
-    addToScene(hole2BumperFrontRight, scene, worldOctree);
-
-    const hole2BumperLeft = new Bumper(
-      new THREE.BoxGeometry(0.5, GREEN_2_DEPTH + 1, GREEN_2_LENGTH / 2 + 1),
-      new THREE.Vector3(-GREEN_2_WIDTH / 2 - 0.25, 0, -30),
-    );
-    addToScene(hole2BumperLeft, scene, worldOctree);
-
-    const hole2BumperRight = new Bumper(
-      new THREE.BoxGeometry(
-        0.5,
-        GREEN_2_DEPTH + 1,
-        GREEN_2_LENGTH / 2 - GREEN_2_WIDTH,
-      ),
-      new THREE.Vector3(GREEN_2_WIDTH / 2 + 0.25, 0, -27.5),
-    );
-    addToScene(hole2BumperRight, scene, worldOctree);
-
-    const hole2BumperLeftFinal = new Bumper(
-      new THREE.BoxGeometry(0.5, GREEN_2_DEPTH + 1, GREEN_2_WIDTH / 2 - 0.5),
-      new THREE.Vector3(GREEN_2_LENGTH - GREEN_2_WIDTH / 2 - 0.05, 0, -31.8),
-      new THREE.Euler(0, Math.PI / 10, 0),
-    );
-    addToScene(hole2BumperLeftFinal, scene, worldOctree);
-
-    const hole2BumperRightFinal = new Bumper(
-      new THREE.BoxGeometry(0.5, GREEN_2_DEPTH + 1, GREEN_2_WIDTH / 2 - 0.5),
-      new THREE.Vector3(GREEN_2_LENGTH - GREEN_2_WIDTH / 2 - 0.05, 0, -35.7),
-      new THREE.Euler(0, -Math.PI / 10, 0),
-    );
-    addToScene(hole2BumperRightFinal, scene, worldOctree);
-
-    // Create Hole2 Bumper Arc
-    // Create an arc circle with an opening for the ball to enter
-    // https://github.com/mrdoob/three.js/blob/master/examples/webgl_geometry_shapes.html
-    const hole2BumperShape = new THREE.Shape()
-      .moveTo(0, 0, 0)
-      .absarc(0, 0, GREEN_2_WIDTH + 0.25, 0, Math.PI * 2, false);
-    const hole2BumperCenter = new THREE.Path()
-      .moveTo(0, 0, 0)
-      .absarc(0, 0, GREEN_2_WIDTH, 0, Math.PI * 2, false);
-
-    hole2BumperShape.holes.push(hole2BumperCenter);
-
-    const hole2BumperExtrudeSettings = {
-      steps: 2,
-      depth: GREEN_2_DEPTH + 0.5,
-      bevelEnabled: false,
-    };
-
-    const hole2BumperGeometry = new THREE.ExtrudeGeometry(
-      hole2BumperShape,
-      hole2BumperExtrudeSettings,
-    );
-
-    const hole2Bumper = new Bumper(
-      hole2BumperGeometry,
-      new THREE.Vector3(27.5, GREEN_2_DEPTH / 2, -33.75),
-      new THREE.Euler(Math.PI / 2, 0, 0),
-    );
-    addToScene(hole2Bumper, scene, worldOctree);
-
-    // Create Hole 3
-    const hole3Green1 = new Green(
-      new THREE.BoxGeometry(GREEN_3_WIDTH, GREEN_3_DEPTH, GREEN_3_LENGTH),
-      new THREE.Vector3(40, 0, -25),
-    );
-    addToScene(hole3Green1, scene, worldOctree);
-
-    const hole3Green2 = new Green(
-      new THREE.BoxGeometry(GREEN_3_WIDTH, GREEN_3_DEPTH, GREEN_3_WIDTH),
-      new THREE.Vector3(35, 0, -22.5),
-    );
-    addToScene(hole3Green2, scene, worldOctree);
-
-    const hole3Green3 = new Green(
-      new THREE.BoxGeometry(GREEN_3_WIDTH, GREEN_3_DEPTH, GREEN_3_LENGTH),
-      new THREE.Vector3(30, 0, -20),
-    );
-    addToScene(hole3Green3, scene, worldOctree);
-
-    const hole3Green4 = new Green(
-      new THREE.BoxGeometry(GREEN_3_WIDTH, GREEN_3_DEPTH, GREEN_3_LENGTH),
-      new THREE.Vector3(30, 0, 5),
-    );
-    addToScene(hole3Green4, scene, worldOctree);
-
-    const hole3HoleGreen = new Green(
-      new THREE.BoxGeometry(GREEN_3_LENGTH * 2, GREEN_3_DEPTH, GREEN_3_WIDTH),
-      new THREE.Vector3(22.5, 0, 7.5),
-    );
-
-    const hole3Hole = new Hole(gameState.getHolePosition(2));
-
-    let hole3Result = hole3HoleGreen.applyCSG(hole3Hole);
-    addBrushToScene(hole3Result, scene, worldOctree);
-
-    // Create Hole3 Bumpers
-    const hole3BumperFront1 = new Bumper(
-      new THREE.BoxGeometry(GREEN_3_WIDTH + 1, GREEN_3_DEPTH + 1, 0.5),
-      new THREE.Vector3(40, 0, -30.25),
-    );
-    addToScene(hole3BumperFront1, scene, worldOctree);
-
-    const hole3BumperFront2 = new Bumper(
-      new THREE.BoxGeometry(GREEN_3_WIDTH * 2, GREEN_3_DEPTH + 1, 0.5),
-      new THREE.Vector3(32, 0, -25.25),
-    );
-    addToScene(hole3BumperFront2, scene, worldOctree);
-
-    const hole3BumperFront3 = new Bumper(
-      new THREE.BoxGeometry(GREEN_3_WIDTH * 2, GREEN_3_DEPTH + 1, 0.5),
-      new THREE.Vector3(37.5, 0, -19.75),
-    );
-    addToScene(hole3BumperFront3, scene, worldOctree);
-
-    const hole3BumperFront4 = new Bumper(
-      new THREE.BoxGeometry(GREEN_3_WIDTH + 1, GREEN_3_DEPTH + 1, 0.5),
-      new THREE.Vector3(30, 0, -14.75),
-    );
-    addToScene(hole3BumperFront4, scene, worldOctree);
-
-    const hole3BumperFrontLeft1 = new Bumper(
-      new THREE.BoxGeometry(0.5, GREEN_3_DEPTH + 1, GREEN_3_LENGTH + 1),
-      new THREE.Vector3(42.75, 0, -25),
-    );
-    addToScene(hole3BumperFrontLeft1, scene, worldOctree);
-
-    const hole3BumperFrontRight1 = new Bumper(
-      new THREE.BoxGeometry(0.5, GREEN_3_DEPTH + 1, GREEN_3_WIDTH),
-      new THREE.Vector3(37.25, 0, -27.5),
-    );
-    addToScene(hole3BumperFrontRight1, scene, worldOctree);
-
-    const hole3BumperFrontLeft2 = new Bumper(
-      new THREE.BoxGeometry(0.5, GREEN_3_DEPTH + 1, GREEN_3_WIDTH),
-      new THREE.Vector3(32.75, 0, -17.5),
-    );
-    addToScene(hole3BumperFrontLeft2, scene, worldOctree);
-
-    const hole3BumperFrontRight2 = new Bumper(
-      new THREE.BoxGeometry(0.5, GREEN_3_DEPTH + 1, GREEN_3_LENGTH + 1),
-      new THREE.Vector3(27.25, 0, -20),
-    );
-    addToScene(hole3BumperFrontRight2, scene, worldOctree);
-
-    const hole3BumperBack1 = new Bumper(
-      new THREE.BoxGeometry(GREEN_3_WIDTH + 1, GREEN_3_DEPTH + 1, 0.5),
-      new THREE.Vector3(30, 0, -0.25),
-    );
-    addToScene(hole3BumperBack1, scene, worldOctree);
-
-    const hole3BumperBack2 = new Bumper(
-      new THREE.BoxGeometry(GREEN_3_LENGTH + 5, GREEN_3_DEPTH + 1, 0.5),
-      new THREE.Vector3(19.5, 0, 4.75),
-    );
-    addToScene(hole3BumperBack2, scene, worldOctree);
-
-    const hole3BumperBack3 = new Bumper(
-      new THREE.BoxGeometry(GREEN_3_LENGTH * 2 + 1, GREEN_3_DEPTH + 1, 0.5),
-      new THREE.Vector3(22.5, 0, 10.25),
-    );
-    addToScene(hole3BumperBack3, scene, worldOctree);
-
-    const hole3BumperBackLeft1 = new Bumper(
-      new THREE.BoxGeometry(0.5, GREEN_3_DEPTH + 1, GREEN_3_LENGTH + 1),
-      new THREE.Vector3(32.75, 0, 5),
-    );
-    addToScene(hole3BumperBackLeft1, scene, worldOctree);
-
-    const hole3BumperBackRight1 = new Bumper(
-      new THREE.BoxGeometry(0.5, GREEN_3_DEPTH + 1, GREEN_3_WIDTH),
-      new THREE.Vector3(27.25, 0, 2.5),
-    );
-    addToScene(hole3BumperBackRight1, scene, worldOctree);
-
-    const hole3BumperBackLeft2 = new Bumper(
-      new THREE.BoxGeometry(0.5, GREEN_3_DEPTH + 1, GREEN_3_WIDTH + 1),
-      new THREE.Vector3(12.25, 0, 7.5),
-    );
-    addToScene(hole3BumperBackLeft2, scene, worldOctree);
-
-
-    // Hole positions
-    const holePositions = [hole1Hole.position, hole2Hole.position, hole3Hole.position];
-
-    // Test the complete game screen
-    uiManager.showGameCompleteScreen();
-
-    // Animation loop
-    function animate() {
-      // Check if the ball is in the hole and the hole has not been completed
-      if (
-        golfBall.checkHole(
-          holePositions[gameState.getCurrentHoleIndex()],
-          HOLE_RADIUS,
-        ) &&
-        !gameState.getCurrentHoleCompleted()
-      ) {
-        // Check if the player completed the final hole
-        if (gameState.isLastHole()) {
-          uiManager.showGameCompleteScreen();
-        } else {
-          gameState.setCurrentHoleCompleted(true);
-          uiManager.updateScore(gameState.getShotsTaken());
-          uiManager.showAdvanceButton();
-          console.log(golfBall.getMessage());
-        }
-
-        // console.log(
-        //   "Current hole position: ",
-        //   holePositions[gameState.getCurrentHoleIndex() - 1],
-        // );
-        // console.log(
-        //   "Next hole position: ",
-        //   holePositions[gameState.getCurrentHoleIndex()],
-        // );
-
-        // Reset the ball
-        // gameState.recordScore();
-        // gameState.incrementCurrentHoleIndex();
-        // golfBall.setPosition(
-        //   gameState.getHolePosition(gameState.getCurrentHoleIndex()),
-        // );
-        // gameState.resetShotsTaken();
+        renderer.toneMappingExposure = 0.5;
       }
 
-      // Update game display
-      uiManager.updateGameDisplay();
+      initSky();
 
-      const deltaTime = Math.min(0.05, clock.getDelta()) / STEPS_PER_FRAME;
+      // Create the ground
+      // Ground geometry
+      const groundGeometry = new THREE.CircleGeometry(125, 32);
 
-      // Collision detection and physics update
-      for (let i = 0; i < STEPS_PER_FRAME; i++) {
-        golfBall.update(deltaTime, worldOctree, GRAVITY);
+      // Ground material
+      const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x3f4d1b });
 
-        if (golfBall.getIsShot()) {
-          cameraControls.followGolfBall();
-          if (!golfBall.ballMoving()) {
-            golfBall.setIsShot(false);
+      // Create ground mesh
+      const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+      ground.rotation.x = -Math.PI / 2;
+      ground.castShadow = true;
+      ground.receiveShadow = true;
+      scene.add(ground);
+      worldOctree.fromGraphNode(ground);
+
+      // Create Green1
+      const hole1Green = new Green(
+        new THREE.BoxGeometry(GREEN_1_WIDTH, GREEN_1_DEPTH, GREEN_1_LENGTH),
+        new THREE.Vector3(0, 0, 0),
+      );
+      addToScene(hole1Green, scene, worldOctree);
+
+      // Create Green1Ramp
+      const hole1Ramp = new Green(
+        new THREE.Shape()
+          .moveTo(0, 0, -GREEN_1_LENGTH / 2)
+          .lineTo(4, 0, GREEN_1_LENGTH / 2)
+          .lineTo(4, 2, GREEN_1_LENGTH / 2)
+          .lineTo(0, 0, -GREEN_1_LENGTH / 2),
+        new THREE.Vector3(-GREEN_1_WIDTH / 2, 2.5, -3.5),
+        new THREE.Euler(0, Math.PI / 2, 0),
+        { steps: 2, depth: GREEN_1_WIDTH, bevelEnabled: false },
+      );
+      addToScene(hole1Ramp, scene, worldOctree);
+
+      // Create Hole1 Bumpers
+      const hole1BumperFront = new Bumper(
+        new THREE.BoxGeometry(GREEN_1_WIDTH + 1, GREEN_1_DEPTH + 4, 0.5),
+        new THREE.Vector3(0, 1, -GREEN_1_LENGTH / 2 - 0.25),
+      );
+      addToScene(hole1BumperFront, scene, worldOctree);
+
+      const hole1BumperBack = new Bumper(
+        new THREE.BoxGeometry(GREEN_1_WIDTH + 1, GREEN_1_DEPTH + 1, 0.5),
+        new THREE.Vector3(0, 0, GREEN_1_LENGTH / 2 + 0.25),
+      );
+      addToScene(hole1BumperBack, scene, worldOctree);
+
+      const hole1BumperLeft = new Bumper(
+        new THREE.BoxGeometry(0.5, GREEN_1_DEPTH + 1, GREEN_1_LENGTH + 1),
+        new THREE.Vector3(-GREEN_1_WIDTH / 2 - 0.25, 0, 0),
+      );
+      addToScene(hole1BumperLeft, scene, worldOctree);
+
+      const hole1BumperRight = new Bumper(
+        new THREE.BoxGeometry(0.5, GREEN_1_DEPTH + 1, GREEN_1_LENGTH + 1),
+        new THREE.Vector3(GREEN_1_WIDTH / 2 + 0.25, 0, 0),
+      );
+      addToScene(hole1BumperRight, scene, worldOctree);
+
+      const hole1BumperLeftRamp = new Bumper(
+        new THREE.Shape()
+          .moveTo(0, 0, 0.5)
+          .lineTo(4.5, 2.5, 0.5)
+          .lineTo(4.5 + GREEN_1_WIDTH, 2.5, 0.5)
+          .lineTo(4.5 + GREEN_1_WIDTH, 0, 0.5)
+          .lineTo(0, 0, 0.5),
+        new THREE.Vector3(-GREEN_1_WIDTH / 2 - 0.5, 3, -3.5),
+        new THREE.Euler(0, Math.PI / 2, 0),
+        { steps: 2, depth: 0.5, bevelEnabled: false },
+      );
+      addToScene(hole1BumperLeftRamp, scene, worldOctree);
+
+      const hole1BumperRightRamp = new Bumper(
+        new THREE.Shape()
+          .moveTo(0, 0, -0.5)
+          .lineTo(4.5, 2.5, -0.5)
+          .lineTo(4.5 + GREEN_1_WIDTH, 2.5, -0.5)
+          .lineTo(4.5 + GREEN_1_WIDTH, 0, -0.5)
+          .lineTo(0, 0, -0.5),
+        new THREE.Vector3(GREEN_1_WIDTH / 2, 3, -3.5),
+        new THREE.Euler(0, Math.PI / 2, 0),
+        { steps: 2, depth: 0.5, bevelEnabled: false },
+      );
+      addToScene(hole1BumperRightRamp, scene, worldOctree);
+
+      // Create Hole1
+      const hole1HoleGreen = new Green(
+        new THREE.BoxGeometry(GREEN_1_WIDTH, GREEN_1_DEPTH, GREEN_1_WIDTH),
+        new THREE.Vector3(0, 2, -10),
+      );
+
+      const hole1Hole = new Hole(gameState.getHolePosition(0));
+
+      let hole1Result = hole1HoleGreen.applyCSG(hole1Hole);
+      addBrushToScene(hole1Result, scene, worldOctree);
+
+      // Create Green2
+      const hole2Green1 = new Green(
+        new THREE.BoxGeometry(GREEN_2_WIDTH, GREEN_2_DEPTH, GREEN_2_LENGTH / 2),
+        new THREE.Vector3(0, 0, -30),
+      );
+      addToScene(hole2Green1, scene, worldOctree);
+
+      const hole2Green2 = new Green(
+        new THREE.BoxGeometry(GREEN_2_WIDTH, GREEN_2_DEPTH, GREEN_2_LENGTH),
+        new THREE.Vector3(GREEN_2_WIDTH + 5, 0, -33.75),
+        new THREE.Euler(0, Math.PI / 2, 0),
+      );
+      addToScene(hole2Green2, scene, worldOctree);
+
+      const hole2HoleGreen = new Green(
+        new THREE.CylinderGeometry(
+          GREEN_2_WIDTH,
+          GREEN_2_WIDTH,
+          GREEN_2_DEPTH,
+          32,
+        ),
+        new THREE.Vector3(27.5, -0.5, -33.75),
+      );
+
+      const hole2Hole = new Hole(gameState.getHolePosition(1));
+
+      let hole2Result = hole2HoleGreen.applyCSG(hole2Hole);
+      addBrushToScene(hole2Result, scene, worldOctree);
+
+      // Create Hole2 Bumpers
+      const hole2BumperRear = new Bumper(
+        new THREE.BoxGeometry(0.5, GREEN_2_DEPTH + 1, GREEN_2_WIDTH + 1),
+        new THREE.Vector3(0, 0, -28.5 + GREEN_2_WIDTH),
+        new THREE.Euler(0, Math.PI / 2, 0),
+      );
+      addToScene(hole2BumperRear, scene, worldOctree);
+
+      const hole2BumperFrontLeft = new Bumper(
+        new THREE.BoxGeometry(0.5, GREEN_2_DEPTH + 1, GREEN_2_LENGTH + 1),
+        new THREE.Vector3(10, 0, -31.5 - GREEN_2_WIDTH),
+        new THREE.Euler(0, Math.PI / 2, 0),
+      );
+      addToScene(hole2BumperFrontLeft, scene, worldOctree);
+
+      const hole2BumperFrontRight = new Bumper(
+        new THREE.BoxGeometry(
+          0.5,
+          GREEN_2_DEPTH + 1,
+          GREEN_2_LENGTH - GREEN_2_WIDTH + 0.5,
+        ),
+        new THREE.Vector3(10.25 + GREEN_2_WIDTH / 2, 0, -31),
+        new THREE.Euler(0, Math.PI / 2, 0),
+      );
+      addToScene(hole2BumperFrontRight, scene, worldOctree);
+
+      const hole2BumperLeft = new Bumper(
+        new THREE.BoxGeometry(0.5, GREEN_2_DEPTH + 1, GREEN_2_LENGTH / 2 + 1),
+        new THREE.Vector3(-GREEN_2_WIDTH / 2 - 0.25, 0, -30),
+      );
+      addToScene(hole2BumperLeft, scene, worldOctree);
+
+      const hole2BumperRight = new Bumper(
+        new THREE.BoxGeometry(
+          0.5,
+          GREEN_2_DEPTH + 1,
+          GREEN_2_LENGTH / 2 - GREEN_2_WIDTH,
+        ),
+        new THREE.Vector3(GREEN_2_WIDTH / 2 + 0.25, 0, -27.5),
+      );
+      addToScene(hole2BumperRight, scene, worldOctree);
+
+      const hole2BumperLeftFinal = new Bumper(
+        new THREE.BoxGeometry(0.5, GREEN_2_DEPTH + 1, GREEN_2_WIDTH / 2 - 0.5),
+        new THREE.Vector3(GREEN_2_LENGTH - GREEN_2_WIDTH / 2 - 0.05, 0, -31.8),
+        new THREE.Euler(0, Math.PI / 10, 0),
+      );
+      addToScene(hole2BumperLeftFinal, scene, worldOctree);
+
+      const hole2BumperRightFinal = new Bumper(
+        new THREE.BoxGeometry(0.5, GREEN_2_DEPTH + 1, GREEN_2_WIDTH / 2 - 0.5),
+        new THREE.Vector3(GREEN_2_LENGTH - GREEN_2_WIDTH / 2 - 0.05, 0, -35.7),
+        new THREE.Euler(0, -Math.PI / 10, 0),
+      );
+      addToScene(hole2BumperRightFinal, scene, worldOctree);
+
+      // Create Hole2 Bumper Arc
+      // Create an arc circle with an opening for the ball to enter
+      // https://github.com/mrdoob/three.js/blob/master/examples/webgl_geometry_shapes.html
+      const hole2BumperShape = new THREE.Shape()
+        .moveTo(0, 0, 0)
+        .absarc(0, 0, GREEN_2_WIDTH + 0.25, 0, Math.PI * 2, false);
+      const hole2BumperCenter = new THREE.Path()
+        .moveTo(0, 0, 0)
+        .absarc(0, 0, GREEN_2_WIDTH, 0, Math.PI * 2, false);
+
+      hole2BumperShape.holes.push(hole2BumperCenter);
+
+      const hole2BumperExtrudeSettings = {
+        steps: 2,
+        depth: GREEN_2_DEPTH + 0.5,
+        bevelEnabled: false,
+      };
+
+      const hole2BumperGeometry = new THREE.ExtrudeGeometry(
+        hole2BumperShape,
+        hole2BumperExtrudeSettings,
+      );
+
+      const hole2Bumper = new Bumper(
+        hole2BumperGeometry,
+        new THREE.Vector3(27.5, GREEN_2_DEPTH / 2, -33.75),
+        new THREE.Euler(Math.PI / 2, 0, 0),
+      );
+      addToScene(hole2Bumper, scene, worldOctree);
+
+      const hole2DiagonalBumper = new Bumper(
+        new THREE.BoxGeometry(GREEN_2_WIDTH - 1, GREEN_2_DEPTH + 1, 0.5),
+        new THREE.Vector3(-1.4, 0, -35),
+        new THREE.Euler(0, Math.PI / 4, 0),
+      );
+      addToScene(hole2DiagonalBumper, scene, worldOctree);
+
+      // Create Hole 3
+      const hole3Green1 = new Green(
+        new THREE.BoxGeometry(GREEN_3_WIDTH, GREEN_3_DEPTH, GREEN_3_LENGTH),
+        new THREE.Vector3(40, 0, -25),
+      );
+      addToScene(hole3Green1, scene, worldOctree);
+
+      const hole3Green2 = new Green(
+        new THREE.BoxGeometry(GREEN_3_WIDTH, GREEN_3_DEPTH, GREEN_3_WIDTH),
+        new THREE.Vector3(35, 0, -22.5),
+      );
+      addToScene(hole3Green2, scene, worldOctree);
+
+      const hole3Green3 = new Green(
+        new THREE.BoxGeometry(GREEN_3_WIDTH, GREEN_3_DEPTH, GREEN_3_LENGTH),
+        new THREE.Vector3(30, 0, -20),
+      );
+      addToScene(hole3Green3, scene, worldOctree);
+
+      const hole3Green4 = new Green(
+        new THREE.BoxGeometry(GREEN_3_WIDTH, GREEN_3_DEPTH, GREEN_3_LENGTH),
+        new THREE.Vector3(30, 0, 5),
+      );
+      addToScene(hole3Green4, scene, worldOctree);
+
+      const hole3HoleGreen = new Green(
+        new THREE.BoxGeometry(GREEN_3_LENGTH * 2, GREEN_3_DEPTH, GREEN_3_WIDTH),
+        new THREE.Vector3(22.5, 0, 7.5),
+      );
+
+      const hole3Hole = new Hole(gameState.getHolePosition(2));
+
+      let hole3Result = hole3HoleGreen.applyCSG(hole3Hole);
+      addBrushToScene(hole3Result, scene, worldOctree);
+
+      // Create Hole3 Bumpers
+      const hole3BumperFront1 = new Bumper(
+        new THREE.BoxGeometry(GREEN_3_WIDTH + 1, GREEN_3_DEPTH + 1, 0.5),
+        new THREE.Vector3(40, 0, -30.25),
+      );
+      addToScene(hole3BumperFront1, scene, worldOctree);
+
+      const hole3BumperFront2 = new Bumper(
+        new THREE.BoxGeometry(GREEN_3_WIDTH * 2, GREEN_3_DEPTH + 1, 0.5),
+        new THREE.Vector3(32, 0, -25.25),
+      );
+      addToScene(hole3BumperFront2, scene, worldOctree);
+
+      const hole3BumperFront3 = new Bumper(
+        new THREE.BoxGeometry(GREEN_3_WIDTH * 2, GREEN_3_DEPTH + 1, 0.5),
+        new THREE.Vector3(37.5, 0, -19.75),
+      );
+      addToScene(hole3BumperFront3, scene, worldOctree);
+
+      const hole3BumperFront4 = new Bumper(
+        new THREE.BoxGeometry(GREEN_3_WIDTH + 1, GREEN_3_DEPTH + 1, 0.5),
+        new THREE.Vector3(30, 0, -14.75),
+      );
+      addToScene(hole3BumperFront4, scene, worldOctree);
+
+      const hole3BumperFrontLeft1 = new Bumper(
+        new THREE.BoxGeometry(0.5, GREEN_3_DEPTH + 1, GREEN_3_LENGTH + 1),
+        new THREE.Vector3(42.75, 0, -25),
+      );
+      addToScene(hole3BumperFrontLeft1, scene, worldOctree);
+
+      const hole3BumperFrontRight1 = new Bumper(
+        new THREE.BoxGeometry(0.5, GREEN_3_DEPTH + 1, GREEN_3_WIDTH),
+        new THREE.Vector3(37.25, 0, -27.5),
+      );
+      addToScene(hole3BumperFrontRight1, scene, worldOctree);
+
+      const hole3BumperFrontLeft2 = new Bumper(
+        new THREE.BoxGeometry(0.5, GREEN_3_DEPTH + 1, GREEN_3_WIDTH),
+        new THREE.Vector3(32.75, 0, -17.5),
+      );
+      addToScene(hole3BumperFrontLeft2, scene, worldOctree);
+
+      const hole3BumperFrontRight2 = new Bumper(
+        new THREE.BoxGeometry(0.5, GREEN_3_DEPTH + 1, GREEN_3_LENGTH + 1),
+        new THREE.Vector3(27.25, 0, -20),
+      );
+      addToScene(hole3BumperFrontRight2, scene, worldOctree);
+
+      const hole3BumperBack1 = new Bumper(
+        new THREE.BoxGeometry(GREEN_3_WIDTH + 1, GREEN_3_DEPTH + 1, 0.5),
+        new THREE.Vector3(30, 0, -0.25),
+      );
+      addToScene(hole3BumperBack1, scene, worldOctree);
+
+      const hole3BumperBack2 = new Bumper(
+        new THREE.BoxGeometry(GREEN_3_LENGTH + 5, GREEN_3_DEPTH + 1, 0.5),
+        new THREE.Vector3(19.5, 0, 4.75),
+      );
+      addToScene(hole3BumperBack2, scene, worldOctree);
+
+      const hole3BumperBack3 = new Bumper(
+        new THREE.BoxGeometry(GREEN_3_LENGTH * 2 + 1, GREEN_3_DEPTH + 1, 0.5),
+        new THREE.Vector3(22.5, 0, 10.25),
+      );
+      addToScene(hole3BumperBack3, scene, worldOctree);
+
+      const hole3BumperBackLeft1 = new Bumper(
+        new THREE.BoxGeometry(0.5, GREEN_3_DEPTH + 1, GREEN_3_LENGTH + 1),
+        new THREE.Vector3(32.75, 0, 5),
+      );
+      addToScene(hole3BumperBackLeft1, scene, worldOctree);
+
+      const hole3BumperBackRight1 = new Bumper(
+        new THREE.BoxGeometry(0.5, GREEN_3_DEPTH + 1, GREEN_3_WIDTH),
+        new THREE.Vector3(27.25, 0, 2.5),
+      );
+      addToScene(hole3BumperBackRight1, scene, worldOctree);
+
+      const hole3BumperBackLeft2 = new Bumper(
+        new THREE.BoxGeometry(0.5, GREEN_3_DEPTH + 1, GREEN_3_WIDTH + 1),
+        new THREE.Vector3(12.25, 0, 7.5),
+      );
+      addToScene(hole3BumperBackLeft2, scene, worldOctree);
+
+      const hole3DiagonalBumper1 = new Bumper(
+        new THREE.BoxGeometry(GREEN_3_WIDTH - 1, GREEN_3_DEPTH + 1, 0.5),
+        new THREE.Vector3(41.4, 0, -21.1),
+        new THREE.Euler(0, Math.PI / 4, 0),
+      );
+      addToScene(hole3DiagonalBumper1, scene, worldOctree);
+
+      const hole3DiagonalBumper2 = new Bumper(
+        new THREE.BoxGeometry(GREEN_3_WIDTH - 1, GREEN_3_DEPTH + 1, 0.5),
+        new THREE.Vector3(28.75, 0, -23.8),
+        new THREE.Euler(0, Math.PI / 4, 0),
+      );
+      addToScene(hole3DiagonalBumper2, scene, worldOctree);
+
+      // Hole positions
+      const holePositions = [
+        hole1Hole.position,
+        hole2Hole.position,
+        hole3Hole.position,
+      ];
+
+      // // Test the complete game screen
+      // uiManager.showGameCompleteScreen();
+
+      const grass = new Grass(250, 100000);
+      scene.add(grass);
+
+      // Animation loop
+      function animate() {
+        // Check if the ball is in the hole and the hole has not been completed
+        if (
+          golfBall.checkHole(
+            holePositions[gameState.getCurrentHoleIndex()],
+            HOLE_RADIUS,
+          ) &&
+          !gameState.getCurrentHoleCompleted()
+        ) {
+          // Check if the player completed the final hole
+          if (gameState.isLastHole()) {
+            uiManager.showGameCompleteScreen();
+          } else {
+            gameState.setCurrentHoleCompleted(true);
+            uiManager.updateScore(gameState.getShotsTaken());
+            uiManager.showAdvanceButton();
+            console.log(golfBall.getMessage());
+          }
+
+          // console.log(
+          //   "Current hole position: ",
+          //   holePositions[gameState.getCurrentHoleIndex() - 1],
+          // );
+          // console.log(
+          //   "Next hole position: ",
+          //   holePositions[gameState.getCurrentHoleIndex()],
+          // );
+
+          // Reset the ball
+          // gameState.recordScore();
+          // gameState.incrementCurrentHoleIndex();
+          // golfBall.setPosition(
+          //   gameState.getHolePosition(gameState.getCurrentHoleIndex()),
+          // );
+          // gameState.resetShotsTaken();
+        }
+
+        // Update game display
+        uiManager.updateGameDisplay();
+
+        const deltaTime = Math.min(0.05, clock.getDelta()) / STEPS_PER_FRAME;
+
+        // Collision detection and physics update
+        for (let i = 0; i < STEPS_PER_FRAME; i++) {
+          golfBall.update(deltaTime, worldOctree, GRAVITY);
+
+          if (golfBall.getIsShot()) {
+            cameraControls.followGolfBall();
+            if (!golfBall.ballMoving()) {
+              golfBall.setIsShot(false);
+            }
           }
         }
+
+        // Render scene
+        renderer.render(scene, camera);
+
+        // Update camera controls
+        cameraControls.update();
+
+        // Update stats
+        stats.update();
       }
-
-      // Render scene
-      renderer.render(scene, camera);
-
-      // Update camera controls
-      cameraControls.update();
-
-      // Update stats
-      stats.update();
-    }
-  </script>
-</body>
-
+    </script>
+  </body>
 </html>

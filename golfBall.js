@@ -1,6 +1,9 @@
 // golfBall.js
 import * as THREE from "three";
 
+// Texture loading
+// https://threejs.org/docs/index.html#api/en/loaders/TextureLoader
+
 export class GolfBall {
   constructor(position, radius, gameState) {
     this.position = position;
