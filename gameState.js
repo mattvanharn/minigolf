@@ -68,8 +68,6 @@ export class GameState {
   advanceHole() {
     // console.log("Before: ", this.cameraControls.cameraPosition);
     // console.log("Advancing hole");
-    // Record Score
-    this.recordScore();
 
     // Increment Current Hole Index
     this.incrementCurrentHoleIndex();
@@ -95,6 +93,10 @@ export class GameState {
     this.setCurrentHoleCompleted(false);
 
     console.log("Hole Scores: ", this.holeScores);
+  }
+
+  getTotalPar() {
+    return this.holeParScores.reduce((a, b) => a + b, 0);
   }
 
   getScore() {

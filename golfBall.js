@@ -9,7 +9,7 @@ export class GolfBall {
     this.position = position;
     this.radius = radius;
     this.velocity = new THREE.Vector3(0, 0, 0);
-    this.shotPower = 42;
+    this.shotPower = 25;
     this.shotDirection = new THREE.Vector3();
     this.isShot = false;
     this.gameState = null;
@@ -114,15 +114,15 @@ export class GolfBall {
 
     this.velocity.copy(this.shotDirection).multiplyScalar(this.shotPower);
 
-    this.shotPower = 42;
+    this.shotPower = 25;
   }
 
   ballMoving() {
-    // Set the velocity to zero if the ball is moving very slowly for a period of time
-    if (this.velocity.length() < 0.01) {
-      this.velocity.set(0, 0, 0);
+    if (this.velocity.x < 0.001 && this.velocity.z < 0.001) {
+      return false;
+    } else {
+      return true;
     }
-    return this.velocity.x !== 0 || this.velocity.z !== 0;
   }
 
   // Check if the golf ball is in the hole

@@ -103,19 +103,12 @@ export class Green extends CourseElement {
 export class Hole extends CourseElement {
   constructor(position, rotation = new THREE.Euler()) {
     const geometry = new THREE.CylinderGeometry(0.4, 0.4, 0.8, 32);
-    // const material = new THREE.MeshLambertMaterial({
-    //   color: 0xeeeeee,
-    //   // flatShading: true,
-    //   polygonOffset: true,
-    //   polygonOffsetUnits: 1,
-    //   polygonOffsetFactor: 1,
-    // });
     const material = new THREE.MeshStandardMaterial({
       color: 0xeeeeee,
-      // flatShading: true,
-      // polygonOffset: true,
-      // polygonOffsetUnits: 1,
-      // polygonOffsetFactor: 1,
+      flatShading: true,
+      polygonOffset: true,
+      polygonOffsetUnits: 1,
+      polygonOffsetFactor: 1,
       roughness: 0.5,
       metalness: 0,
     });
@@ -133,21 +126,20 @@ export class Bumper extends CourseElement {
     rotation = new THREE.Euler(),
     extrudeSettings = null,
   ) {
-    // const material = new THREE.MeshLambertMaterial({
-    //   color: "red",
-    //   flatShading: true,
-    //   polygonOffset: true,
-    //   polygonOffsetUnits: 1,
-    //   polygonOffsetFactor: 1,
-    // });
     const material = new THREE.MeshStandardMaterial({
-      color: "red",
-      // flatShading: true,
-      // polygonOffset: true,
-      // polygonOffsetUnits: 1,
-      // polygonOffsetFactor: 1,
-      roughness: 0.5,
-      metalness: 1,
+      color: "#AA4A44",
+      flatShading: true,
+      polygonOffset: true,
+      polygonOffsetUnits: 1,
+      polygonOffsetFactor: 1,
+      roughness: 0.7,
+      metalness: 0.8,
+      map: new THREE.TextureLoader().load(
+        "./textures/Scratched_gold_01_1K_Normal.png",
+      ),
+      normalMap: new THREE.TextureLoader().load(
+        "./textures/Scratched_gold_01_1K_Normal.png",
+      ),
     });
 
     // If extrude is not null, extrude the geometry

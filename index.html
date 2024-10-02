@@ -18,7 +18,7 @@
       Minigolf Three.js Project<br />
       W and S - Adjust shot power<br />
       T - Toggle camera view<br />
-      Space - Hit the ball<br />
+      Space - Hit the ball (must be in locked camera mode)<br />
     </div>
     <!-- Power Display -->
     <div id="powerDisplay"></div>
@@ -241,8 +241,9 @@
         uniforms["rayleigh"].value = 3;
         uniforms["mieCoefficient"].value = 0.005;
         uniforms["mieDirectionalG"].value = 0.7;
+        // uniforms["elevation"].value = 2;
 
-        const phi = THREE.MathUtils.degToRad(90 - 10);
+        const phi = THREE.MathUtils.degToRad(90 - 2);
         const theta = THREE.MathUtils.degToRad(155);
 
         sun.setFromSphericalCoords(1, phi, theta);
@@ -636,7 +637,7 @@
           } else {
             gameState.setCurrentHoleCompleted(true);
             uiManager.updateScore(gameState.getShotsTaken());
-            uiManager.showAdvanceButton();
+            uiManager.showAdvanceHoleScreen();
             console.log(golfBall.getMessage());
           }
 

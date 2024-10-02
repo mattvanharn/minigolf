@@ -11,7 +11,7 @@ export class UIManager {
     this.golfBall = null;
 
     this.createScoreDisplay();
-    this.createAdvanceButton();
+    this.createAdvanceHoleScreen();
     this.createPowerDisplay();
     this.createGameDisplay();
     this.createGameCompleteScreen();
@@ -23,20 +23,6 @@ export class UIManager {
     scoreElement.textContent = "Score: 0";
     document.body.appendChild(scoreElement);
     this.scoreElement = scoreElement;
-  }
-
-  createAdvanceButton() {
-    const advanceButton = document.createElement("button");
-    advanceButton.id = "advance-button";
-    advanceButton.textContent = "Next Hole";
-    advanceButton.style.display = "none";
-    document.body.appendChild(advanceButton);
-    this.advanceButton = advanceButton;
-
-    advanceButton.addEventListener("click", () => {
-      this.gameState.advanceHole();
-      this.advanceButton.style.display = "none";
-    });
   }
 
   createPowerDisplay() {
@@ -62,17 +48,13 @@ export class UIManager {
     this.golfBall = golfBall;
   }
 
-  updatePowerDisplay() {
-    this.powerDisplay.innerHTML = `Power: ${this.golfBall.getShotPower()}`;
-  }
-
   updateGameInfo(info) {
     this.gameInfo.textContent = info;
   }
 
   updateGameDisplay() {
     const powerDisplay = document.getElementById("powerDisplay");
-    powerDisplay.innerHTML = `Power: ${this.golfBall.getShotPower().toFixed(2)}`;
+    powerDisplay.innerHTML = `Power: ${this.golfBall.getShotPower().toFixed(0)}`;
     const gameInfo = document.getElementById("gameInfo");
     gameInfo.innerHTML = `Hole: ${this.gameState.getCurrentHoleIndex() + 1} <br />
       Strokes: ${this.gameState.getShotsTaken()} <br />
@@ -84,12 +66,71 @@ export class UIManager {
     this.scoreElement.textContent = `Score: ${score}`;
   }
 
-  showAdvanceButton() {
-    this.advanceButton.style.display = "block";
+  createAdvanceHoleScreen() {
+    this.advanceHoleScreen = document.createElement("div");
+    this.advanceHoleScreen.id = "advance-hole-screen";
+    this.advanceHoleScreen.style.display = "none";
+    document.body.appendChild(this.advanceHoleScreen);
   }
 
-  hideAdvanceButton() {
-    this.advanceButton.style.display = "none";
+  showAdvanceHoleScreen() {
+    // Record score
+    this.gameState.recordScore();
+
+    // Clear existing content
+
+    this.advanceHoleScreen.innerHTML = "";
+
+    // Create new content
+    this.advanceHoleScreen.innerHTML = `
+      <div id="advance-hole-container">
+        <h1>${this.golfBall.getMessage()}</h1>
+        <div id="hole-scores-container">
+          <table id="hole-scores">
+            <thead>
+              <tr id="holes">
+                <th>Hole</th>
+                <th>1</th>
+                <th>2</th>
+                <th>3</th>
+                <th>Total</th>
+              </tr>
+              <tr id="pars">
+                <th>Par</th>
+                  <td>${this.gameState.holeParScores[0]}</td>
+                  <td>${this.gameState.holeParScores[1]}</td>
+                  <td>${this.gameState.holeParScores[2]}</td>
+                  <td>${this.gameState.getTotalPar()}</td>
+              </tr>
+              <tr>
+                <th id="scores">Score</th>
+                  <td>${this.gameState.holeScores[0] === 0 ? "" : this.gameState.holeScores[0]}</td>
+                  <td>${this.gameState.holeScores[1] === 0 ? "" : this.gameState.holeScores[1]}</td>
+                  <td>${this.gameState.holeScores[2] === 0 ? "" : this.gameState.holeScores[2]}</td>
+                  <td>${this.gameState.getScore()}</td>
+              </tr>
+            </thead>
+          </table>
+        </div>
+        <button id="advance-hole-button">Advance to Hole ${this.gameState.getCurrentHoleIndex() + 2}</button>
+      </div>
+    `;
+
+    // Add event listener to advance hole button
+    const advanceHoleButton = this.advanceHoleScreen.querySelector(
+      "#advance-hole-button",
+    );
+    advanceHoleButton.addEventListener("click", () => {
+      console.log("Advance hole clicked");
+      this.hideAdvanceHoleScreen();
+      this.gameState.advanceHole();
+    });
+
+    this.advanceHoleScreen.style.display = "block";
+  }
+
+  hideAdvanceHoleScreen() {
+    this.advanceHoleScreen.style.display = "none";
   }
 
   createGameCompleteScreen() {
@@ -103,7 +144,7 @@ export class UIManager {
     this.gameState.recordScore();
 
     // Clear existing content
-    this.gameCompleteScreen.innerHTML = '';
+    this.gameCompleteScreen.innerHTML = "";
 
     // Create new content
     this.gameCompleteScreen.innerHTML = `
@@ -117,14 +158,14 @@ export class UIManager {
                 <th>1</th>
                 <th>2</th>
                 <th>3</th>
-                <th></th>
+                <th>Total</th>
               </tr>
               <tr id="pars">
                 <th>Par</th>
                   <td>${this.gameState.holeParScores[0]}</td>
                   <td>${this.gameState.holeParScores[1]}</td>
                   <td>${this.gameState.holeParScores[2]}</td>
-                  <td>Total</td>
+                  <td>${this.gameState.getTotalPar()}</td>
               </tr>
               <tr>
                 <th id="scores">Score</th>
@@ -141,7 +182,8 @@ export class UIManager {
     `;
 
     // Add event listener to play again button
-    const playAgainButton = this.gameCompleteScreen.querySelector("#play-again-button");
+    const playAgainButton =
+      this.gameCompleteScreen.querySelector("#play-again-button");
     playAgainButton.addEventListener("click", () => {
       console.log("Play again clicked");
       this.hideGameCompleteScreen();

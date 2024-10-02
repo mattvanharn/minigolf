@@ -1,7 +1,5 @@
 // inputHandler.js
 
-import { CameraControls } from "./cameraControls.js";
-
 export class InputHandler {
   constructor(document, golfBall, camera, cameraControls) {
     this.document = document;
@@ -13,22 +11,27 @@ export class InputHandler {
     const keyStates = {};
 
     document.addEventListener("keydown", (event) => {
-      console.log("event.code", event.code);
+      // console.log("event.code", event.code);
       keyStates[event.code] = true;
       switch (event.code) {
         case "KeyW":
-          console.log("W key pressed");
-          golfBall.adjustShotPower(0.25);
+          // console.log("W key pressed");
+          if (golfBall.getShotPower() < 100) {
+            golfBall.adjustShotPower(1);
+          }
           break;
         case "KeyS":
-          golfBall.adjustShotPower(-0.25);
+          if (golfBall.getShotPower() > 0) {
+            golfBall.adjustShotPower(-1);
+          }
           break;
         case "Space":
           // Shoot the ball only if the camera is locked and the ball is not moving
-          console.log(
-            "cameraControls.getIsLockedBehindBall()",
-            cameraControls.getIsLockedBehindBall(),
-          );
+          // console.log(
+          //   "cameraControls.getIsLockedBehindBall()",
+          //   cameraControls.getIsLockedBehindBall(),
+          // );
+          console.log("ball velocity", golfBall.velocity);
           if (cameraControls.getIsLockedBehindBall()) {
             if (!golfBall.ballMoving()) {
               golfBall.shoot(camera);
